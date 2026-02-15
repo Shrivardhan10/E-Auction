@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'Item: ' + ${item.name} + ' — E-Auction'">Item Detail — E-Auction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #48bb78;
+            --warning: #f6ad55;
+            --danger: #f56565;
+            --info: #4299e1;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding-top: 80px;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .navbar-brand { font-weight: 700; font-size: 20px; }
+
+        .main-content { padding: 40px 20px; max-width: 1100px; margin: 0 auto; }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+
+        .detail-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        @media (max-width: 768px) {
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+
+        .image-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            padding: 30px;
+        }
+
+        .image-section img {
+            max-width: 100%;
+            max-height: 420px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            object-fit: contain;
+        }
+
+        .info-section { padding: 35px; }
+
+        .item-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 12px;
+        }
+
+        .item-price {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .badge-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge-premium { background: #fef3c7; color: #92400e; }
+        .badge-normal  { background: #e0e7ff; color: #3730a3; }
+        .badge-approved { background: #c6f6d5; color: #22543d; }
+        .badge-pending  { background: #fefcbf; color: #744210; }
+        .badge-rejected { background: #fed7d7; color: #9b2c2c; }
+
+        .description-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .description-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .description-section p {
+            color: #718096;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        .meta-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .meta-table td {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .meta-table td:first-child {
+            color: #718096;
+            width: 40%;
+        }
+
+        .meta-table td:last-child {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* Expert Certification Section */
+        .cert-section {
+            margin-top: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+        }
+
+        .cert-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .cert-header .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .cert-header .icon.certified { background: #c6f6d5; color: #22543d; }
+        .cert-header .icon.not-certified { background: #fed7d7; color: #9b2c2c; }
+
+        .cert-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 0;
+        }
+
+        .cert-header p {
+            font-size: 13px;
+            color: #718096;
+            margin: 2px 0 0;
+        }
+
+        .cert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .cert-stat {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .cert-stat .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #a0aec0;
+            margin-bottom: 6px;
+        }
+
+        .cert-stat .value {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .cert-stat .value.score-high { color: var(--success); }
+        .cert-stat .value.score-mid { color: var(--warning); }
+        .cert-stat .value.score-low { color: var(--danger); }
+
+        .cert-explanation {
+            background: #f7fafc;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 12px 12px 0;
+            padding: 18px 22px;
+        }
+
+        .cert-explanation h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .cert-explanation p {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: 25px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .admin-remarks {
+            margin-top: 18px;
+            padding: 14px 18px;
+            background: #fffbeb;
+            border-left: 4px solid var(--warning);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .admin-remarks h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 5px;
+        }
+
+        .admin-remarks p {
+            font-size: 14px;
+            color: #78350f;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand navbar-dark px-4">
+        <a class="navbar-brand text-white" href="/seller/dashboard">
+            <i class="bi bi-shop-window"></i> E-Auction
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link text-white" href="/seller/items/upload"><i class="bi bi-plus-circle"></i> New Item</a>
+            <a class="nav-link text-white" href="/seller/items"><i class="bi bi-grid"></i> My Items</a>
+            <a class="nav-link text-white" href="/seller/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="nav-link text-white" href="/seller/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <!-- Back Link -->
+        <a href="/seller/items" class="back-link">
+            <i class="bi bi-arrow-left"></i> Back to My Items
+        </a>
+
+        <!-- Item Detail Card -->
+        <div class="detail-card">
+            <div class="detail-grid">
+                <!-- Image -->
+                <div class="image-section">
+                    <img th:if="${item.imageUrl != null}" th:src="${item.imageUrl}" th:alt="${item.name}" />
+                    <div th:if="${item.imageUrl == null}" style="text-align: center; color: rgba(0,0,0,0.3);">
+                        <i class="bi bi-image" style="font-size: 80px;"></i>
+                        <p>No image uploaded</p>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="info-section">
+                    <div>
+                        <span th:if="${item.itemType == 'PREMIUM'}" class="badge-type badge-premium">
+                            <i class="bi bi-star-fill"></i> Premium
+                        </span>
+                        <span th:if="${item.itemType == 'NORMAL'}" class="badge-type badge-normal">
+                            <i class="bi bi-tag"></i> Normal
+                        </span>
+                        <span th:if="${item.adminStatus == 'APPROVED'}" class="badge-type badge-approved">
+                            <i class="bi bi-check-circle-fill"></i> Approved
+                        </span>
+                        <span th:if="${item.adminStatus == 'PENDING'}" class="badge-type badge-pending">
+                            <i class="bi bi-hourglass-split"></i> Pending
+                        </span>
+                        <span th:if="${item.adminStatus == 'REJECTED'}" class="badge-type badge-rejected">
+                            <i class="bi bi-x-circle-fill"></i> Rejected
+                        </span>
+                    </div>
+
+                    <h1 class="item-title" th:text="${item.name}">Item Name</h1>
+                    <div class="item-price" th:text="'₹ ' + ${#numbers.formatInteger(item.basePrice, 1, 'DEFAULT')}">₹ 0</div>
+
+                    <table class="meta-table">
+                        <tr>
+                            <td>Item ID</td>
+                            <td th:text="${item.itemId}" style="font-size: 12px;">—</td>
+                        </tr>
+                        <tr>
+                            <td>Type</td>
+                            <td th:text="${item.itemType}">—</td>
+                        </tr>
+                        <tr>
+                            <td>Admin Status</td>
+                            <td th:text="${item.adminStatus}">—</td>
+                        </tr>
+                        <tr>
+                            <td>Listed On</td>
+                            <td th:text="${item.createdAt != null ? #temporals.format(item.createdAt, 'dd MMM yyyy, hh:mm a') : '—'}">—</td>
+                        </tr>
+                        <tr>
+                            <td>Last Updated</td>
+                            <td th:text="${item.updatedAt != null ? #temporals.format(item.updatedAt, 'dd MMM yyyy, hh:mm a') : '—'}">—</td>
+                        </tr>
+                    </table>
+
+                    <!-- Admin Remarks -->
+                    <div th:if="${item.adminRemarks != null}" class="admin-remarks">
+                        <h4><i class="bi bi-chat-left-text"></i> Review Remarks</h4>
+                        <p th:text="${item.adminRemarks}">—</p>
+                    </div>
+
+                    <div class="description-section">
+                        <h3><i class="bi bi-file-text"></i> Description</h3>
+                        <p th:text="${item.description}">No description available.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expert Certification Section (Only for PREMIUM items with certification) -->
+        <div th:if="${certification != null}" class="cert-section">
+            <div class="cert-header">
+                <div th:class="${certification.isCertified ? 'icon certified' : 'icon not-certified'}">
+                    <i th:class="${certification.isCertified ? 'bi bi-shield-check' : 'bi bi-shield-x'}"></i>
+                </div>
+                <div>
+                    <h2>
+                        <span th:if="${certification.isCertified}">Expert Review: Certified</span>
+                        <span th:unless="${certification.isCertified}">Expert Review: Not Certified</span>
+                    </h2>
+                    <p th:text="'Reviewed on ' + ${#temporals.format(certification.certifiedAt, 'dd MMM yyyy, hh:mm a')}">
+                        Review info
+                    </p>
+                </div>
+            </div>
+
+            <div class="cert-grid">
+                <div class="cert-stat">
+                    <div class="label">Confidence Score</div>
+                    <div class="value"
+                         th:classappend="${certification.llmScore >= 70 ? 'score-high' : (certification.llmScore >= 40 ? 'score-mid' : 'score-low')}"
+                         th:text="${certification.llmScore + '/100'}">0/100</div>
+                </div>
+                <div class="cert-stat">
+                    <div class="label">Grade</div>
+                    <div class="value"
+                         th:classappend="${certification.grade == 'A' || certification.grade == 'B' ? 'score-high' : (certification.grade == 'C' ? 'score-mid' : 'score-low')}"
+                         th:text="${certification.grade}">—</div>
+                </div>
+                <div class="cert-stat">
+                    <div class="label">Decision</div>
+                    <div class="value"
+                         th:classappend="${certification.isCertified ? 'score-high' : 'score-low'}"
+                         th:text="${certification.isCertified ? 'APPROVED' : 'REJECTED'}">—</div>
+                </div>
+            </div>
+
+            <div class="cert-explanation">
+                <h4><i class="bi bi-clipboard-check"></i> Expert Explanation</h4>
+                <p th:text="${certification.remarks}">No explanation available.</p>
+            </div>
+        </div>
+
+        <!-- No certification notice for premium items without review -->
+        <div th:if="${item.itemType == 'PREMIUM' && certification == null && !reviewInProgress && !reviewFailed}" class="cert-section" style="text-align: center; padding: 40px;">
+            <i class="bi bi-hourglass-split" style="font-size: 48px; color: var(--warning);"></i>
+            <h3 style="margin-top: 15px; color: #4a5568;">Expert Review Pending</h3>
+            <p style="color: #718096;">This premium item is awaiting expert certification.</p>
+        </div>
+
+        <!-- Review Failed — show retry button -->
+        <div th:if="${reviewFailed}" class="cert-section" style="text-align: center; padding: 40px;">
+            <i class="bi bi-exclamation-triangle" style="font-size: 48px; color: var(--danger);"></i>
+            <h3 style="margin-top: 15px; color: #9b2c2c;">Expert Review Failed</h3>
+            <p style="color: #718096; max-width: 500px; margin: 10px auto 20px;">The review could not be completed. Please try again.</p>
+            <form th:action="@{'/seller/items/' + ${item.itemId} + '/retry-review'}" method="post" style="display: inline;">
+                <button type="submit" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: transform 0.2s ease;">
+                    <i class="bi bi-arrow-clockwise"></i> Retry Review
+                </button>
+            </form>
+        </div>
+
+        <!-- Review In Progress (fast polling) -->
+        <div th:if="${reviewInProgress}" class="cert-section" id="review-loading" style="text-align: center; padding: 50px 30px;">
+            <div class="review-spinner">
+                <div class="spinner-ring"></div>
+                <i class="bi bi-shield-check spinner-icon"></i>
+            </div>
+            <h3 style="margin-top: 25px; color: #1a202c; font-weight: 700;">Expert Review In Progress</h3>
+            <p style="color: #718096; margin-top: 8px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                Our expert is evaluating this item for authenticity and consistency. This usually takes a few seconds.
+            </p>
+            <p class="review-timer" id="timerText" style="font-size: 13px; color: #a0aec0; margin-top: 15px;">Waiting for response...</p>
+        </div>
+
+        <!-- ====== PUSH TO AUCTION SECTION ====== -->
+        <!-- Show for APPROVED items that don't have an auction yet -->
+        <div th:if="${item.adminStatus == 'APPROVED' && auction == null}" class="cert-section">
+            <div class="cert-header">
+                <div class="icon" style="background: #e0e7ff; color: #3730a3;">
+                    <i class="bi bi-hammer"></i>
+                </div>
+                <div>
+                    <h2>Push to Auction</h2>
+                    <p>This item is approved and ready to be auctioned. Set the auction schedule below.</p>
+                </div>
+            </div>
+
+            <form th:action="@{'/seller/items/' + ${item.itemId} + '/push-to-auction'}" method="post">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 6px;">
+                            <i class="bi bi-calendar-event"></i> Auction Start Time
+                        </label>
+                        <input type="datetime-local" name="startTime" required
+                               style="width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s;"
+                               onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'" />
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 6px;">
+                            <i class="bi bi-calendar-check"></i> Auction End Time
+                        </label>
+                        <input type="datetime-local" name="endTime" required
+                               style="width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s;"
+                               onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'" />
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 6px;">
+                        <i class="bi bi-percent"></i> Minimum Bid Increment (%)
+                    </label>
+                    <input type="number" name="minIncrementPercent" value="10" min="1" max="50" step="0.5"
+                           style="width: 200px; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none;"
+                           onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'" />
+                </div>
+                <button type="submit" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: linear-gradient(135deg, #48bb78, #38a169); color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(72,187,120,0.4)'"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+                    <i class="bi bi-hammer"></i> Push to Auction
+                </button>
+            </form>
+        </div>
+
+        <!-- Auction Status Section (when auction exists) -->
+        <div th:if="${auction != null}" class="cert-section">
+            <div class="cert-header">
+                <div class="icon" th:classappend="${auction.status == 'LIVE' ? ' certified' : (auction.status == 'PENDING' ? '' : ' not-certified')}"
+                     th:style="${auction.status == 'PENDING' ? 'background: #fefcbf; color: #744210;' : ''}">
+                    <i th:class="${auction.status == 'LIVE' ? 'bi bi-broadcast' : (auction.status == 'PENDING' ? 'bi bi-clock' : 'bi bi-check-circle')}"></i>
+                </div>
+                <div>
+                    <h2>
+                        <span th:if="${auction.status == 'PENDING'}">Auction Scheduled</span>
+                        <span th:if="${auction.status == 'LIVE'}">Auction is LIVE!</span>
+                        <span th:if="${auction.status == 'COMPLETED'}">Auction Completed</span>
+                        <span th:if="${auction.status == 'CANCELLED'}">Auction Cancelled</span>
+                    </h2>
+                    <p th:text="'Auction ID: ' + ${auction.auctionId}">—</p>
+                </div>
+            </div>
+
+            <div class="cert-grid">
+                <div class="cert-stat">
+                    <div class="label">Start Time</div>
+                    <div class="value" style="font-size: 14px; color: #2d3748;"
+                         th:text="${#temporals.format(auction.startTime, 'dd MMM yyyy, hh:mm a')}">—</div>
+                </div>
+                <div class="cert-stat">
+                    <div class="label">End Time</div>
+                    <div class="value" style="font-size: 14px; color: #2d3748;"
+                         th:text="${#temporals.format(auction.endTime, 'dd MMM yyyy, hh:mm a')}">—</div>
+                </div>
+                <div class="cert-stat">
+                    <div class="label">Status</div>
+                    <div class="value"
+                         th:classappend="${auction.status == 'LIVE' ? 'score-high' : (auction.status == 'PENDING' ? 'score-mid' : 'score-low')}"
+                         th:text="${auction.status}">—</div>
+                </div>
+                <div class="cert-stat">
+                    <div class="label">Min Increment</div>
+                    <div class="value" style="font-size: 16px; color: #4a5568;"
+                         th:text="${auction.minIncrementPercent + '%'}">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/seller/items" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Back to My Items
+            </a>
+        </div>
+    </div>
+
+    <style>
+        .review-spinner {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto;
+        }
+
+        .spinner-ring {
+            width: 90px;
+            height: 90px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid var(--primary);
+            border-right: 4px solid var(--primary-dark);
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+        }
+
+        .spinner-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            color: var(--primary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+        }
+
+        .review-timer {
+            font-size: 13px;
+            color: #a0aec0;
+            margin-top: 5px;
+        }
+
+        .cert-section { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Fast polling: checks every 1.5s, reloads immediately when done -->
+    <script th:if="${reviewInProgress}">
+        (function() {
+            var itemId = '[[${item.itemId}]]';
+            var timerText = document.getElementById('timerText');
+            var elapsed = 0;
+
+            // Simple elapsed counter
+            var tick = setInterval(function() {
+                elapsed++;
+                timerText.innerHTML = 'Waiting for AI response... <strong>' + elapsed + 's</strong>';
+            }, 1000);
+
+            // Poll every 1.5 seconds for fast response
+            var poll = setInterval(function() {
+                fetch('/seller/items/' + itemId + '/review-status')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.done || data.failed) {
+                            clearInterval(poll);
+                            clearInterval(tick);
+                            if (data.failed) {
+                                timerText.innerHTML = '<strong style="color: #f56565;">Review failed — reloading...</strong>';
+                            } else {
+                                timerText.innerHTML = '<strong style="color: #48bb78;">Done! Loading results...</strong>';
+                            }
+                            setTimeout(function() { window.location.reload(); }, 800);
+                        }
+                    })
+                    .catch(function(err) { console.log('Poll error:', err); });
+            }, 1500);
+
+            // Also poll immediately on page load (review might already be done)
+            fetch('/seller/items/' + itemId + '/review-status')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.done || data.failed) {
+                        clearInterval(poll);
+                        clearInterval(tick);
+                        window.location.reload();
+                    }
+                })
+                .catch(function() {});
+        })();
+    </script>
+</body>
+</html>

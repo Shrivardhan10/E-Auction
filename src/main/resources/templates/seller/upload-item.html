@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Upload Item — E-Auction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #48bb78;
+            --warning: #f6ad55;
+            --danger: #f56565;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding-top: 80px;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 20px;
+        }
+        
+        .main-content {
+            padding: 40px 20px;
+        }
+        
+        .page-header {
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            color: white;
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .page-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+        }
+        
+        .upload-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 35px;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .form-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-label .required {
+            color: var(--danger);
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px 15px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .form-control::placeholder {
+            color: #999;
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .image-upload-area {
+            border: 2px dashed var(--primary);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .image-upload-area:hover {
+            border-color: var(--primary-dark);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+        
+        .image-upload-area input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .upload-subtext {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .image-preview {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .image-preview.active {
+            display: block;
+        }
+        
+        .image-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .image-filename {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .price-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .price-badge.normal {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+        
+        .price-badge.premium {
+            background-color: #fef08a;
+            color: #b45309;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 35px;
+        }
+        
+        .btn-submit {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-back {
+            flex: 1;
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-back:hover {
+            background: #e0e0e0;
+            color: #333;
+            text-decoration: none;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+            margin-bottom: 25px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .btn-submit:disabled .loading-spinner {
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .upload-card {
+                padding: 25px;
+            }
+            
+            .form-buttons {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-lg">
+            <a class="navbar-brand" href="/"><i class="bi bi-shop"></i> E-Auction</a>
+            <a href="/seller/dashboard" class="ms-auto btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </nav>
+    
+    <div class="main-content">
+        <div class="container-lg">
+            <!-- Page Header -->
+            <div class="page-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
+                <h1><i class="bi bi-cloud-arrow-up"></i> Upload New Item</h1>
+                <p>List your collectible on the E-Auction platform</p>
+            </div>
+            
+            <!-- Upload Card -->
+            <div class="upload-card">
+                <div th:if="${success}" class="alert alert-success d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span th:text="${success}" style="margin-left: 10px;"></span>
+                </div>
+                
+                <div th:if="${error}" class="alert alert-danger d-flex align-items-center">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <span th:text="${error}" style="margin-left: 10px;"></span>
+                </div>
+                
+                <form action="/seller/items/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <!-- Item Details Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="bi bi-info-circle"></i> Item Details</h3>
+                        
+                        <div class="form-group">
+                            <label for="name" class="form-label">Item Name <span class="required">*</span></label>
+                            <input type="text" id="name" name="name" class="form-control"
+                                   placeholder="e.g., Vintage Watch Collection" required maxlength="100">
+                            <div class="form-hint">Max 100 characters</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description" class="form-label">Description <span class="required">*</span></label>
+                            <textarea id="description" name="description" class="form-control"
+                                      placeholder="Provide detailed information about your item..." required maxlength="500"></textarea>
+                            <div class="form-hint">Max 500 characters. Be descriptive for better bids!</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pricing Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="bi bi-currency-rupee"></i> Pricing</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="basePrice" class="form-label">Base Price (INR) <span class="required">*</span></label>
+                                <input type="number" id="basePrice" name="basePrice" class="form-control"
+                                       placeholder="0.00" step="0.01" min="1" required>
+                                <div class="form-hint">Enter starting price in Indian Rupees</div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <strong>Classification:</strong>
+                            <div id="priceInfo" style="margin-top: 8px;">
+                                <span class="price-badge normal"><i class="bi bi-check-circle"></i> NORMAL Item</span>
+                            </div>
+                            <div class="form-hint" style="margin-top: 10px;">
+                                Items with base price ≤ ₹10,000 are classified as <strong>NORMAL</strong><br>
+                                Items with base price > ₹10,000 are classified as <strong>PREMIUM</strong> (expert review required)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="bi bi-image"></i> Item Image</h3>
+                        
+                        <div class="image-upload-area" id="imageUploadArea">
+                            <div class="upload-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                            <div class="upload-text">Click to upload or drag & drop</div>
+                            <div class="upload-subtext">PNG, JPG, GIF up to 5MB</div>
+                            <input type="file" id="image" name="image" accept="image/*" required>
+                        </div>
+                        
+                        <div id="imagePreview" class="image-preview">
+                            <img id="previewImg" src="" alt="Preview">
+                            <div class="image-filename" id="imageFilename"></div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" style="margin-top: 10px;" onclick="clearImage()">
+                                <i class="bi bi-trash"></i> Clear Image
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Buttons -->
+                    <div class="form-buttons">
+                        <button type="submit" class="btn-submit" id="submitBtn">
+                            <span class="loading-spinner"></span>
+                            <span id="btnText"><i class="bi bi-upload"></i> Upload Item</span>
+                        </button>
+                        <a href="/seller/dashboard" class="btn-back">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const imageFilename = document.getElementById('imageFilename');
+        const uploadForm = document.getElementById('uploadForm');
+        const priceInput = document.getElementById('basePrice');
+        const priceInfo = document.getElementById('priceInfo');
+        
+        // Drag and drop
+        imageUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imageUploadArea.style.borderColor = 'var(--primary-dark)';
+        });
+        
+        imageUploadArea.addEventListener('dragleave', () => {
+            imageUploadArea.style.borderColor = 'var(--primary)';
+        });
+        
+        imageUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imageUploadArea.style.borderColor = 'var(--primary)';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageInput.files = files;
+                previewImage();
+            }
+        });
+        
+        // Click to upload
+        imageUploadArea.addEventListener('click', () => imageInput.click());
+        
+        imageInput.addEventListener('change', previewImage);
+        
+        function previewImage() {
+            if (imageInput.files && imageInput.files[0]) {
+                const file = imageInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    imageFilename.textContent = 'File: ' + file.name;
+                    imagePreview.classList.add('active');
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function clearImage() {
+            imageInput.value = '';
+            imagePreview.classList.remove('active');
+        }
+        
+        // Price classification
+        priceInput.addEventListener('input', () => {
+            const price = parseFloat(priceInput.value);
+            let badge = '<span class="price-badge normal"><i class="bi bi-check-circle"></i> NORMAL Item</span>';
+            
+            if (!isNaN(price) && price > 10000) {
+                badge = '<span class="price-badge premium"><i class="bi bi-star-fill"></i> PREMIUM Item (Expert Review Required)</span>';
+            }
+            
+            priceInfo.innerHTML = badge;
+        });
+        
+        // Form submission
+        uploadForm.addEventListener('submit', (e) => {
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<span class="loading-spinner"></span> Uploading...';
+        });
+    </script>
+</body>
+</html>

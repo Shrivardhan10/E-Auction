@@ -311,43 +311,43 @@ INSERT INTO users (user_id, name, email, password_hash, phone, role, address, ci
 VALUES
 ('f47ac10b-58cc-4372-a567-0e02b2c3d479',
  'Vikram Mehta', 'vikram.mehta@gmail.com',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543210', 'SELLER',
  '34, Chor Bazaar, Mutton Street', 'Mumbai', 'Maharashtra', '400003'),
 
 ('d290f1ee-6c54-4b01-90e6-d701748f0851',
  'Priya Sharma', 'priya.sharma@gmail.com',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543211', 'SELLER',
  '12, Sundar Nagar Market', 'New Delhi', 'Delhi', '110003'),
 
 ('7c9e6679-7425-40de-944b-e07fc1f90ae7',
  'Arjun Patel', 'arjun.patel@gmail.com',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543212', 'BIDDER',
  '8, CG Road, Navrangpura', 'Ahmedabad', 'Gujarat', '380009'),
 
 ('550e8400-e29b-41d4-a716-446655440000',
  'Sneha Reddy', 'sneha.reddy@gmail.com',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543213', 'BIDDER',
  '45, Jubilee Hills, Road No. 10', 'Hyderabad', 'Telangana', '500033'),
 
 ('6ba7b810-9dad-11d1-80b4-00c04fd430c8',
  'Karan Singh', 'karan.singh@gmail.com',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543214', 'BIDDER',
  '7, MI Road', 'Jaipur', 'Rajasthan', '302001'),
 
 ('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
  'Neha Gupta', 'neha.gupta@eauction.in',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543215', 'ADMIN',
  'E-Auction HQ, Koramangala 4th Block', 'Bangalore', 'Karnataka', '560034'),
 
 ('1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed',
  'Raj Kumar', 'raj.kumar@eauction.in',
- '$2b$12$WApznUPhDubNIh3nv1gJHOT3MoK5L3PnDcma13QfzO6Kz0GyXBnfe',
+ 'ps1234',
  '9876543216', 'DELIVERY',
  '22, Andheri East, MIDC', 'Mumbai', 'Maharashtra', '400093');
 
@@ -575,3 +575,6 @@ VALUES
  'd290f1ee-6c54-4b01-90e6-d701748f0851',        -- Priya Sharma (seller)
  182000.00, 5.00, 9100.00, 172900.00,
  'COMPLETED', NOW() - INTERVAL '5 days');
+
+
+

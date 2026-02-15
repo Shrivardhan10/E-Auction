@@ -35,7 +35,7 @@ public class Auction {
     @Column(name = "winner_id")
     private UUID winnerId;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
@@ -43,43 +43,55 @@ public class Auction {
 
     public Auction() {}
 
-    public UUID getAuctionId() {
-        return auctionId;
+    @PrePersist
+    protected void onCreate() {
+        if (auctionId == null) auctionId = UUID.randomUUID();
+        if (status == null) status = "PENDING";
+        if (minIncrementPercent == null) minIncrementPercent = new BigDecimal("10.00");
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    public UUID getItemId() {
-        return itemId;
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
-    public LocalDateTime getStartTime() {
-        return startTime;
+    /** Compute live status based on current timestamp. */
+    public String computeStatus() {
+        LocalDateTime now = LocalDateTime.now();
+        if ("CANCELLED".equals(status)) return "CANCELLED";
+        if ("COMPLETED".equals(status)) return "COMPLETED";
+        if (now.isBefore(startTime)) return "PENDING";
+        if (now.isAfter(endTime)) return "COMPLETED";
+        return "LIVE";
     }
 
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
+    // Getters & Setters
+    public UUID getAuctionId() { return auctionId; }
+    public void setAuctionId(UUID auctionId) { this.auctionId = auctionId; }
 
-    public String getStatus() {
-        return status;
-    }
+    public UUID getItemId() { return itemId; }
+    public void setItemId(UUID itemId) { this.itemId = itemId; }
 
-    public BigDecimal getMinIncrementPercent() {
-        return minIncrementPercent;
-    }
+    public LocalDateTime getStartTime() { return startTime; }
+    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
-    public BigDecimal getCurrentHighestBid() {
-        return currentHighestBid;
-    }
+    public LocalDateTime getEndTime() { return endTime; }
+    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
 
-    public UUID getWinnerId() {
-        return winnerId;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    public BigDecimal getMinIncrementPercent() { return minIncrementPercent; }
+    public void setMinIncrementPercent(BigDecimal minIncrementPercent) { this.minIncrementPercent = minIncrementPercent; }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
+    public BigDecimal getCurrentHighestBid() { return currentHighestBid; }
+    public void setCurrentHighestBid(BigDecimal currentHighestBid) { this.currentHighestBid = currentHighestBid; }
+
+    public UUID getWinnerId() { return winnerId; }
+    public void setWinnerId(UUID winnerId) { this.winnerId = winnerId; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

@@ -356,7 +356,7 @@ VALUES
 -- ITEMS  (6 items covering every admin_status and item_type)
 -- ----------------------------------------------------------
 
-INSERT INTO items (item_id, seller_id, name, description, image_url, item_type, base_price,
+INSERT INTO items2 (item_id, seller_id, name, description, image_url, item_type, base_price,
                    admin_status, admin_remarks, reviewed_by, reviewed_at)
 VALUES
 -- 1. NORMAL / APPROVED — live auction running

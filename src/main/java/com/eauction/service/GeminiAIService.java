@@ -55,13 +55,32 @@ public class GeminiAIService {
      * Retries up to MAX_RETRIES times on 429 rate-limit errors with exponential backoff.
      */
     public ReviewResult reviewItem(String itemName, String itemDescription, Path imagePath) {
+        // Convert file-based image to byte array for unified handling
+        byte[] imageBytes = null;
+        String mimeType = null;
+        if (imagePath != null && Files.exists(imagePath)) {
+            try {
+                imageBytes = Files.readAllBytes(imagePath);
+                mimeType = determineMimeType(imagePath.toString());
+            } catch (IOException e) {
+                log.warn("Could not read image file, falling back to text-only: {}", e.getMessage());
+            }
+        }
+        return reviewItem(itemName, itemDescription, imageBytes, mimeType);
+    }
+
+    /**
+     * Send item details + image bytes to Gemini for expert review.
+     * Accepts raw byte array and content type directly (for DB-stored images).
+     */
+    public ReviewResult reviewItem(String itemName, String itemDescription, byte[] imageBytes, String mimeType) {
         String url = "https://generativelanguage.googleapis.com/v1beta/models/"
                 + MODEL + ":generateContent?key=" + apiKey;
 
         log.info("Using Gemini API URL: {}", url.replaceAll("key=.*", "key=***"));
 
         String prompt = buildPrompt(itemName, itemDescription);
-        Map<String, Object> requestBody = buildRequestBody(prompt, imagePath);
+        Map<String, Object> requestBody = buildRequestBody(prompt, imageBytes, mimeType);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -113,31 +132,28 @@ public class GeminiAIService {
         return new ReviewResult(false, 0.0, "F", "AI review failed after retries.", true);
     }
 
-    private Map<String, Object> buildRequestBody(String prompt, Path imagePath) {
-        try {
-            if (imagePath != null && Files.exists(imagePath)) {
-                byte[] imageBytes = Files.readAllBytes(imagePath);
-                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-                String mimeType = determineMimeType(imagePath.toString());
-
-                return Map.of(
-                    "contents", List.of(Map.of(
-                        "parts", List.of(
-                            Map.of("text", prompt),
-                            Map.of("inline_data", Map.of(
-                                "mime_type", mimeType,
-                                "data", base64Image
-                            ))
-                        )
-                    )),
-                    "generationConfig", Map.of(
-                        "temperature", 0.3,
-                        "maxOutputTokens", 1024
-                    )
-                );
+    private Map<String, Object> buildRequestBody(String prompt, byte[] imageBytes, String mimeType) {
+        if (imageBytes != null && imageBytes.length > 0) {
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            if (mimeType == null || mimeType.isBlank()) {
+                mimeType = "image/jpeg";
             }
-        } catch (IOException e) {
-            log.warn("Could not read image file, falling back to text-only: {}", e.getMessage());
+
+            return Map.of(
+                "contents", List.of(Map.of(
+                    "parts", List.of(
+                        Map.of("text", prompt),
+                        Map.of("inline_data", Map.of(
+                            "mime_type", mimeType,
+                            "data", base64Image
+                        ))
+                    )
+                )),
+                "generationConfig", Map.of(
+                    "temperature", 0.3,
+                    "maxOutputTokens", 1024
+                )
+            );
         }
 
         return Map.of(

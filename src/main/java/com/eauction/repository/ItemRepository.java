@@ -9,5 +9,6 @@ import java.util.UUID;
 public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     List<Item> findBySellerIdOrderByCreatedAtDesc(UUID sellerId);
+    List<Item> findByAdminStatus(String adminStatus);
 }
 

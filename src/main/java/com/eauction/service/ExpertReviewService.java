@@ -10,8 +10,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,16 +46,13 @@ public class ExpertReviewService {
     public void reviewPremiumItem(Item item) {
         log.info("[ASYNC] Starting expert review for premium item: {} ({})", item.getName(), item.getItemId());
 
-        // Resolve image file path using absolute upload directory
-        Path imagePath = null;
-        if (item.getImageUrl() != null && item.getImageUrl().startsWith("/uploads/")) {
-            String filename = item.getImageUrl().replace("/uploads/", "");
-            imagePath = itemService.getUploadDir().resolve(filename);
-        }
+        // Use binary image data stored in the database
+        byte[] imageData = item.getImageData();
+        String contentType = item.getImageContentType();
 
-        // Call Gemini AI (includes retry logic for 429)
+        // Call Gemini AI with byte array (includes retry logic for 429)
         GeminiAIService.ReviewResult result = geminiAIService.reviewItem(
-                item.getName(), item.getDescription(), imagePath);
+                item.getName(), item.getDescription(), imageData, contentType);
 
         log.info("[ASYNC] Expert review result for '{}': approved={}, score={}, grade={}, isError={}",
                 item.getName(), result.approved(), result.score(), result.grade(), result.isError());

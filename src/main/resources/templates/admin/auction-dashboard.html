@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Auction Details — Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box}
+        body{background:#f4f5f7;min-height:100vh;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;margin:0}
+
+        .top-bar{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+        .top-bar .brand{font-weight:700;font-size:18px;color:#2563eb;display:flex;align-items:center;gap:8px;text-decoration:none}
+        .top-bar .nav-links{display:flex;align-items:center;gap:20px;font-size:14px}
+        .top-bar .nav-links a{color:#64748b;text-decoration:none;font-weight:500;transition:color .2s}
+        .top-bar .nav-links a:hover{color:#2563eb}
+        .top-bar .user-info{display:flex;align-items:center;gap:16px;font-size:14px;color:#64748b}
+        .top-bar .user-info a{color:#2563eb;text-decoration:none;font-weight:500}
+
+        .page-wrap{max-width:1100px;margin:0 auto;padding:24px 24px 80px}
+        .back-link{display:inline-flex;align-items:center;gap:6px;color:#64748b;font-size:14px;text-decoration:none;margin-bottom:20px;font-weight:500}
+        .back-link:hover{color:#2563eb}
+
+        .status-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+        .status-live{display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#166534;padding:6px 14px;border-radius:100px;font-size:13px;font-weight:600}
+        .status-live .dot{width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse 1.5s infinite}
+        .status-completed{display:inline-flex;align-items:center;gap:6px;background:#e2e8f0;color:#475569;padding:6px 14px;border-radius:100px;font-size:13px;font-weight:600}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .timer{font-size:14px;font-weight:600;color:#64748b}
+
+        .item-summary{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;display:flex;gap:18px;align-items:center;margin-bottom:24px}
+        .item-summary img{width:80px;height:80px;border-radius:10px;object-fit:cover}
+        .item-summary .info h3{font-size:18px;font-weight:700;margin:0 0 4px;color:#0f172a}
+        .item-summary .info p{color:#64748b;font-size:13px;margin:0}
+
+        .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+        @media(max-width:800px){.dash-grid{grid-template-columns:1fr 1fr}}
+        .stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px}
+        .stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;font-weight:600}
+        .stat-card .value{font-size:24px;font-weight:700;color:#0f172a;margin-top:4px}
+        .stat-card.highlight{background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff}
+        .stat-card.highlight .label{color:rgba(255,255,255,.6)}
+        .stat-card.highlight .value{color:#fff}
+
+        .bid-log-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+        .bid-log-header{padding:18px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between}
+        .bid-log-header h4{font-size:16px;font-weight:700;margin:0;color:#0f172a}
+        .bid-log-header .live-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse 1.5s infinite;display:inline-block;margin-right:6px}
+        .bid-log-body{max-height:500px;overflow-y:auto}
+        .bid-log-item{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #f1f5f9;transition:background .2s}
+        .bid-log-item:hover{background:#f8fafc}
+        .bid-log-item:last-child{border-bottom:none}
+        .bid-log-item .left{display:flex;align-items:center;gap:12px}
+        .bid-log-item .avatar{width:36px;height:36px;border-radius:50%;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+        .bid-log-item .bidder-name{font-weight:600;color:#0f172a;font-size:14px}
+        .bid-log-item .ts{font-size:11px;color:#94a3b8}
+        .bid-log-item .amt{font-size:16px;font-weight:700;color:#2563eb}
+
+        .ws-status{font-size:12px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;margin-bottom:16px}
+        .ws-status.connected{background:#dcfce7;color:#166534}
+        .ws-status.disconnected{background:#fee2e2;color:#991b1b}
+        .ws-status .dot{width:6px;height:6px;border-radius:50%}
+        .ws-status.connected .dot{background:#16a34a}
+        .ws-status.disconnected .dot{background:#dc2626}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="/admin/dashboard" class="brand"><i class="bi bi-shield-lock"></i> E-Auction Admin</a>
+    <div class="nav-links">
+        <a href="/admin/dashboard">Dashboard</a>
+        <a href="/admin/auctions">Auctions</a>
+    </div>
+    <div class="user-info">
+        <span th:text="${user.name}">Admin</span>
+        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+</div>
+
+<div class="page-wrap">
+    <a href="/admin/auctions" class="back-link"><i class="bi bi-arrow-left"></i> Back to Auctions</a>
+
+    <div class="status-bar">
+        <span th:if="${auction.status == 'LIVE'}" class="status-live"><span class="dot"></span> LIVE</span>
+        <span th:if="${auction.status == 'COMPLETED'}" class="status-completed"><i class="bi bi-check-circle"></i> COMPLETED</span>
+        <span th:if="${auction.status == 'PENDING'}" class="status-completed"><i class="bi bi-clock"></i> PENDING</span>
+        <span id="countdown" class="timer"></span>
+    </div>
+
+    <div class="item-summary">
+        <img th:if="${item.imageData != null}" th:src="@{'/api/items/' + ${item.itemId} + '/image'}" alt="Item">
+        <div th:if="${item.imageData == null}" style="width:80px;height:80px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center"><i class="bi bi-image" style="font-size:28px;color:#cbd5e1"></i></div>
+        <div class="info">
+            <h3 th:text="${item.name}">Item</h3>
+            <p>Base: ₹<span th:text="${item.basePrice}">0</span> · Type: <span th:text="${item.itemType}">NORMAL</span> · Auction ID: <span th:text="${auction.auctionId}" style="font-family:monospace;font-size:11px">--</span></p>
+        </div>
+    </div>
+
+    <div id="wsStatus" class="ws-status disconnected">
+        <span class="dot"></span> <span id="wsText">Connecting...</span>
+    </div>
+
+    <div class="dash-grid">
+        <div class="stat-card highlight">
+            <div class="label">Highest Bid</div>
+            <div class="value" id="currentHighest">₹<span th:text="${currentHighest}">0</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total Bids</div>
+            <div class="value" id="bidCountDisplay" th:text="${bidCount}">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Leading Bidder</div>
+            <div class="value" style="font-size:16px" id="highestBidderName" th:text="${highestBidderName != '' ? highestBidderName : '—'}">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Ends At</div>
+            <div class="value" style="font-size:14px" th:text="${#temporals.format(auction.endTime, 'MMM dd, hh:mm a')}">--</div>
+        </div>
+    </div>
+
+    <div class="bid-log-card">
+        <div class="bid-log-header">
+            <h4><span class="live-dot" th:if="${auction.status == 'LIVE'}"></span> All Bid Activity</h4>
+        </div>
+        <div class="bid-log-body" id="bidLog">
+            <div class="bid-log-item" style="justify-content:center;color:#94a3b8">Loading bids...</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:inline="javascript">
+    const auctionId = /*[[${auction.auctionId}]]*/ '';
+    const auctionEnd = /*[[${auction.endTime.toString()}]]*/ '';
+    const auctionStatus = /*[[${auction.status}]]*/ '';
+    let stompClient = null;
+
+    function connectWS() {
+        const socket = new SockJS('/ws-auction');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+        stompClient.connect({}, function() {
+            document.getElementById('wsStatus').className = 'ws-status connected';
+            document.getElementById('wsText').textContent = 'Connected — Real-time updates';
+            stompClient.subscribe('/topic/auction/' + auctionId, function(msg) {
+                const data = JSON.parse(msg.body);
+                if (data.type === 'NEW_BID') {
+                    document.getElementById('currentHighest').textContent = '₹' + data.amount;
+                    document.getElementById('bidCountDisplay').textContent = data.bidCount;
+                    document.getElementById('highestBidderName').textContent = data.bidderName || 'Anonymous';
+                    addBidToLog(data.bidderName || 'Bidder', data.amount, data.timestamp);
+                } else if (data.type === 'AUCTION_ENDED' || data.type === 'PAYMENT_COMPLETED') {
+                    location.reload();
+                }
+            });
+            stompClient.subscribe('/topic/auctions/updates', function(msg) {
+                const data = JSON.parse(msg.body);
+                if (data.auctionId === auctionId) location.reload();
+            });
+            loadBids();
+        }, function() {
+            document.getElementById('wsStatus').className = 'ws-status disconnected';
+            document.getElementById('wsText').textContent = 'Disconnected — Reconnecting...';
+            setTimeout(connectWS, 3000);
+        });
+    }
+
+    function loadBids() {
+        fetch('/api/auction/' + auctionId + '/bids?limit=50')
+        .then(r => r.json()).then(bids => {
+            const log = document.getElementById('bidLog');
+            if (bids.length === 0) { log.innerHTML = '<div class="bid-log-item" style="justify-content:center;color:#94a3b8">No bids yet</div>'; return; }
+            log.innerHTML = '';
+            bids.forEach(b => addBidToLog(b.bidderName || 'Bidder', b.amount, b.ts));
+        }).catch(() => {});
+    }
+
+    function addBidToLog(name, amount, ts) {
+        const log = document.getElementById('bidLog');
+        if (log.querySelector('[style]')) log.innerHTML = '';
+        const el = document.createElement('div');
+        el.className = 'bid-log-item';
+        const initial = name.charAt(0).toUpperCase();
+        const timeStr = ts ? new Date(ts).toLocaleTimeString() : 'just now';
+        el.innerHTML = '<div class="left"><div class="avatar">' + initial + '</div><div><div class="bidder-name">' + escapeHtml(name) + '</div><div class="ts">' + timeStr + '</div></div></div><div class="amt">₹' + amount + '</div>';
+        log.prepend(el);
+    }
+
+    function updateCountdown() {
+        if (auctionStatus !== 'LIVE') return;
+        const diff = new Date(auctionEnd) - new Date();
+        const el = document.getElementById('countdown');
+        if (diff <= 0) { el.textContent = 'Auction ended'; return; }
+        const h = Math.floor(diff/3600000),m = Math.floor((diff%3600000)/60000),s = Math.floor((diff%60000)/1000);
+        el.textContent = (h > 0 ? h+'h ':'') + m+'m '+s+'s remaining';
+    }
+
+    function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    connectWS();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    setInterval(loadBids, 10000);
+</script>
+
+</body>
+</html>

@@ -6,460 +6,284 @@
     <title>My Items — E-Auction</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --primary: #667eea;
-            --primary-dark: #764ba2;
-            --success: #48bb78;
-            --warning: #f6ad55;
-            --danger: #f56565;
-        }
-        
+        *, *::before, *::after { box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #f4f5f7;
             min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            padding-top: 80px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #1e293b;
+            margin: 0;
         }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 100;
+
+        /* ── Top bar ── */
+        .top-bar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
         }
-        
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 20px;
+        .top-bar .brand {
+            font-weight: 700; font-size: 18px; color: #6366f1;
+            display: flex; align-items: center; gap: 8px; text-decoration: none;
         }
-        
-        .main-content {
-            padding: 40px 20px;
+        .top-bar .nav-links {
+            display: flex; align-items: center; gap: 18px; font-size: 14px;
         }
-        
+        .top-bar .nav-links a {
+            color: #64748b; text-decoration: none; font-weight: 500;
+            display: flex; align-items: center; gap: 5px; transition: color .2s;
+        }
+        .top-bar .nav-links a:hover, .top-bar .nav-links a.active { color: #6366f1; }
+
+        /* ── Page ── */
+        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
         .page-header {
-            margin-bottom: 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
         }
-        
-        .page-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 5px;
+        .page-header h1 { font-size: 24px; font-weight: 700; margin: 0; }
+        .page-header .count {
+            font-size: 14px; color: #94a3b8; font-weight: 500; margin-left: 8px;
         }
-        
-        .page-header p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 16px;
+
+        .btn-upload {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #6366f1; color: #fff; border: none; border-radius: 8px;
+            padding: 10px 20px; font-size: 14px; font-weight: 600;
+            text-decoration: none; transition: background .2s;
         }
-        
-        .alert {
-            border-radius: 10px;
-            border: none;
-            margin-bottom: 25px;
+        .btn-upload:hover { background: #4f46e5; color: #fff; }
+
+        /* ── Filter pills ── */
+        .filters {
+            display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
         }
-        
-        .empty-state {
-            background: white;
-            border-radius: 15px;
-            padding: 60px 30px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.5s ease-out;
+        .filters .pill {
+            padding: 6px 16px; border-radius: 20px; font-size: 13px;
+            font-weight: 500; cursor: pointer; border: 1px solid #e2e8f0;
+            background: #fff; color: #64748b; transition: all .2s;
         }
-        
-        .empty-state-icon {
-            font-size: 64px;
-            color: var(--primary);
-            margin-bottom: 20px;
-        }
-        
-        .empty-state h2 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .empty-state p {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 25px;
-        }
-        
-        .btn-empty {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-block;
-        }
-        
-        .btn-empty:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
-        
+        .filters .pill:hover { border-color: #6366f1; color: #6366f1; }
+        .filters .pill.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+        /* ── Items grid ── */
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+            gap: 20px;
         }
-        
+
         .item-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
             overflow: hidden;
-            transition: all 0.3s ease;
-            animation: slideIn 0.5s ease-out;
+            transition: box-shadow .2s, transform .15s;
         }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
         .item-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-        }
-        
-        .item-image {
-            width: 100%;
-            height: 220px;
-            object-fit: cover;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            position: relative;
-        }
-        
-        .item-badges {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-        
-        .badge-status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .badge-pending {
-            background: rgba(246, 173, 85, 0.9);
-            color: white;
-        }
-        
-        .badge-approved {
-            background: rgba(72, 187, 120, 0.9);
-            color: white;
-        }
-        
-        .badge-rejected {
-            background: rgba(245, 101, 101, 0.9);
-            color: white;
-        }
-        
-        .badge-premium {
-            background: rgba(251, 191, 36, 0.95);
-            color: #78350f;
-        }
-        
-        .item-content {
-            padding: 20px;
-        }
-        
-        .item-name {
-            font-size: 16px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 8px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .item-description {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 12px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            line-height: 1.4;
-        }
-        
-        .item-price {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 15px;
-        }
-        
-        .item-meta {
-            font-size: 12px;
-            color: #999;
-            padding: 12px 0;
-            border-top: 1px solid #f0f0f0;
-            border-bottom: 1px solid #f0f0f0;
-            margin-bottom: 15px;
-        }
-        
-        .meta-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-        
-        .meta-row:last-child {
-            margin-bottom: 0;
-        }
-        
-        .item-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .btn-action {
-            flex: 1;
-            padding: 8px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-        
-        .btn-view {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-        }
-        
-        .btn-view:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,.07);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-            color: white;
         }
-        
-        .btn-delete {
-            background: #fee;
-            color: var(--danger);
+
+        .item-img {
+            width: 100%; height: 190px; object-fit: cover;
+            background: #f1f5f9; display: block;
         }
-        
-        .btn-delete:hover {
-            background: var(--danger);
-            color: white;
+        .item-img-placeholder {
+            width: 100%; height: 190px;
+            display: flex; align-items: center; justify-content: center;
+            background: #f1f5f9; color: #cbd5e1; font-size: 40px;
         }
-        
-        .filters {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
+
+        .item-body { padding: 18px; }
+        .item-body h3 {
+            font-size: 16px; font-weight: 600; margin: 0 0 8px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        
-        .filter-badge {
-            background: white;
-            border: 2px solid #e0e0e0;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-decoration: none;
+
+        .item-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+
+        .pill-badge {
+            padding: 3px 10px; border-radius: 20px; font-size: 11px;
+            font-weight: 600; letter-spacing: .3px;
         }
-        
-        .filter-badge:hover,
-        .filter-badge.active {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: rgba(102, 126, 234, 0.05);
+        .pill-premium { background: #fef3c7; color: #92400e; }
+        .pill-normal  { background: #e0e7ff; color: #3730a3; }
+        .pill-approved { background: #dcfce7; color: #166534; }
+        .pill-pending  { background: #fef9c3; color: #854d0e; }
+        .pill-rejected { background: #fee2e2; color: #991b1b; }
+
+        .item-price {
+            font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 14px;
         }
-        
-        .item-count {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
+
+        .item-date { font-size: 12px; color: #94a3b8; margin-bottom: 14px; }
+
+        .btn-view {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            width: 100%; padding: 10px; border: 1px solid #e2e8f0;
+            border-radius: 8px; background: #fff; color: #6366f1;
+            font-size: 13px; font-weight: 600; text-decoration: none; transition: all .2s;
         }
-        
-        @media (max-width: 768px) {
-            .items-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .page-header {
-                padding: 20px 15px !important;
-            }
-            
-            .page-header h1 {
-                font-size: 22px;
-            }
+        .btn-view:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center; padding: 60px 20px; grid-column: 1 / -1;
         }
+        .empty-state i { font-size: 52px; color: #cbd5e1; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 18px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+        .empty-state p { color: #94a3b8; font-size: 14px; }
     </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-lg">
-            <a class="navbar-brand" href="/"><i class="bi bi-shop"></i> E-Auction</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/seller/items/upload"><i class="bi bi-plus-circle"></i> New Item</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/seller/dashboard"><i class="bi bi-house"></i> Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/seller/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
-                    </li>
-                </ul>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+        <a class="brand" href="/seller/dashboard"><i class="bi bi-hammer"></i> E-Auction</a>
+        <div class="nav-links">
+            <a href="/seller/dashboard"><i class="bi bi-house"></i> Dashboard</a>
+            <a href="/seller/items" class="active"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
+            <a href="/seller/items/upload"><i class="bi bi-plus-circle"></i> Upload</a>
+            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </div>
+
+    <div class="page-wrap">
+
+        <!-- Flash messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert"
+             style="border-radius: 10px; font-size: 14px; border: none; background: #dcfce7; color: #166534;">
+            <i class="bi bi-check-circle-fill me-1"></i> <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert"
+             style="border-radius: 10px; font-size: 14px; border: none; background: #fee2e2; color: #991b1b;">
+            <i class="bi bi-exclamation-circle-fill me-1"></i> <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Header -->
+        <div class="page-header">
+            <div style="display:flex;align-items:baseline;gap:4px;">
+                <h1>My Items</h1>
+                <span class="count" th:text="'(' + ${items.size()} + ')'"></span>
+            </div>
+            <a href="/seller/items/upload" class="btn-upload"><i class="bi bi-plus-lg"></i> Upload Item</a>
+        </div>
+
+        <!-- Filter pills (client-side) -->
+        <div class="filters">
+            <span class="pill active" data-filter="ALL">All</span>
+            <span class="pill" data-filter="PENDING">Pending</span>
+            <span class="pill" data-filter="APPROVED">Approved</span>
+            <span class="pill" data-filter="REJECTED">Rejected</span>
+            <span class="pill" data-filter="SOLD" th:if="${soldItems != null and !soldItems.isEmpty()}" style="border-color:#bbf7d0;color:#16a34a;">Sold</span>
+            <span class="pill" data-filter="PREMIUM">Premium</span>
+            <span class="pill" data-filter="NORMAL">Normal</span>
+        </div>
+
+        <!-- Items grid -->
+        <div class="items-grid" id="itemsGrid">
+            <div th:each="item : ${items}" class="item-card"
+                 th:data-status="${item.adminStatus}" th:data-type="${item.itemType}">
+                <!-- image -->
+                <img th:if="${item.imageUrl != null}" th:src="${item.imageUrl}" th:alt="${item.name}" class="item-img" />
+                <div th:if="${item.imageUrl == null}" class="item-img-placeholder">
+                    <i class="bi bi-image"></i>
+                </div>
+
+                <div class="item-body">
+                    <div class="item-meta">
+                        <span class="pill-badge" th:classappend="${item.itemType == 'PREMIUM' ? 'pill-premium' : 'pill-normal'}"
+                              th:text="${item.itemType}">TYPE</span>
+                        <span class="pill-badge"
+                              th:classappend="${item.adminStatus == 'APPROVED' ? 'pill-approved' : (item.adminStatus == 'REJECTED' ? 'pill-rejected' : 'pill-pending')}"
+                              th:text="${item.adminStatus}">STATUS</span>
+                    </div>
+                    <h3 th:text="${item.name}">Item Name</h3>
+                    <div class="item-price" th:text="'₹' + ${#numbers.formatInteger(item.basePrice, 1, 'DEFAULT')}">₹0</div>
+                    <div class="item-date" th:text="${item.createdAt != null ? #temporals.format(item.createdAt, 'dd MMM yyyy, hh:mm a') : '—'}">—</div>
+                    <a th:href="@{'/seller/items/' + ${item.itemId}}" class="btn-view">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div th:if="${#lists.isEmpty(items)}" class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h3>No items yet</h3>
+                <p>Upload your first item to start selling.</p>
+                <a href="/seller/items/upload" class="btn-upload" style="margin-top:16px;"><i class="bi bi-plus-lg"></i> Upload Item</a>
             </div>
         </div>
-    </nav>
-    
-    <div class="main-content">
-        <div class="container-lg">
-            <!-- Page Header -->
-            <div class="page-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
-                <h1><i class="bi bi-list-ul"></i> My Items</h1>
-                <p>Manage and track your auction listings</p>
-            </div>
-            
-            <!-- Alerts -->
-            <div th:if="${success}" class="alert alert-success d-flex align-items-center">
-                <i class="bi bi-check-circle-fill"></i>
-                <span th:text="${success}" style="margin-left: 10px;"></span>
-            </div>
-            
-            <div th:if="${error}" class="alert alert-danger d-flex align-items-center">
-                <i class="bi bi-exclamation-circle-fill"></i>
-                <span th:text="${error}" style="margin-left: 10px;"></span>
-            </div>
-            
-            <!-- Empty State -->
-            <div th:if="${#lists.isEmpty(items)}" class="empty-state">
-                <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
-                <h2>No Items Yet</h2>
-                <p>You haven't uploaded any items for auction. Start by uploading your first item!</p>
-                <a href="/seller/items/upload" class="btn-empty">
-                    <i class="bi bi-cloud-arrow-up"></i> Upload New Item
-                </a>
-            </div>
-            
-            <!-- Items Grid -->
-            <div th:unless="${#lists.isEmpty(items)}">
-                <div class="item-count">
-                    <strong th:text="${#lists.size(items)}">0</strong> item<span th:if="${#lists.size(items) != 1}">s</span>
-                </div>
-                
-                <div class="items-grid">
-                    <div th:each="item : ${items}" class="item-card">
-                        <!-- Item Image -->
-                        <div style="position: relative;">
-                            <img th:if="${item.imageUrl != null}"
-                                 th:src="${item.imageUrl}"
-                                 alt="Item image"
-                                 class="item-image" />
-                            <div th:if="${item.imageUrl == null}" style="width: 100%; height: 220px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-image" style="font-size: 48px; color: rgba(0,0,0,0.2);"></i>
-                            </div>
-                            
-                            <!-- Status Badges -->
-                            <div class="item-badges">
-                                <span th:if="${item.itemType == 'PREMIUM'}" class="badge-status badge-premium">
-                                    <i class="bi bi-star-fill"></i> Premium
-                                </span>
-                                <span th:if="${item.adminStatus == 'PENDING'}" class="badge-status badge-pending">
-                                    <i class="bi bi-hourglass-split"></i> Pending
-                                </span>
-                                <span th:if="${item.adminStatus == 'APPROVED'}" class="badge-status badge-approved">
-                                    <i class="bi bi-check-circle"></i> Approved
-                                </span>
-                                <span th:if="${item.adminStatus == 'REJECTED'}" class="badge-status badge-rejected">
-                                    <i class="bi bi-x-circle"></i> Rejected
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <!-- Item Content -->
-                        <div class="item-content">
-                            <h3 class="item-name" th:text="${item.name}">Item Name</h3>
-                            <p class="item-description" th:text="${item.description}">Description</p>
-                            
-                            <div class="item-price" th:text="'₹ ' + ${#numbers.formatInteger(item.basePrice, 1, 'DEFAULT')}">₹ 0</div>
-                            
-                            <div class="item-meta">
-                                <div class="meta-row">
-                                    <span>Type:</span>
-                                    <strong th:text="${item.itemType}">NORMAL</strong>
-                                </div>
-                                <div class="meta-row">
-                                    <span>Status:</span>
-                                    <strong th:text="${item.adminStatus}">PENDING</strong>
-                                </div>
-                                <div class="meta-row">
-                                    <span>Listed:</span>
-                                    <strong th:text="${#temporals.format(item.createdAt, 'dd MMM yyyy')}">—</strong>
-                                </div>
-                            </div>
-                            
-                            <!-- Actions -->
-                            <div class="item-actions">
-                                <a th:href="'/seller/items/' + ${item.itemId}" class="btn-action btn-view">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
-                            </div>
-                        </div>
+
+        <!-- ─── Sold Items Section ─── -->
+        <div id="soldSection" th:if="${soldItems != null and !soldItems.isEmpty()}" style="margin-top:40px;display:none;">
+            <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                <i class="bi bi-bag-check-fill" style="color:#16a34a;"></i> Sold Items
+                <span style="background:#dcfce7;color:#166534;font-size:12px;padding:2px 10px;border-radius:100px;font-weight:600;"
+                      th:text="${soldItems.size()}">0</span>
+            </h2>
+            <div class="items-grid">
+                <div th:each="entry : ${soldItems}" class="item-card" style="border-color:#bbf7d0;">
+                    <img th:if="${entry.item.imageUrl != null}" th:src="${entry.item.imageUrl}" th:alt="${entry.item.name}" class="item-img" />
+                    <div th:if="${entry.item.imageUrl == null}" class="item-img-placeholder">
+                        <i class="bi bi-image"></i>
                     </div>
-                </div>
-                
-                <!-- Upload More Button -->
-                <div style="text-align: center; margin-top: 40px;">
-                    <a href="/seller/items/upload" class="btn-empty">
-                        <i class="bi bi-plus-circle"></i> Upload Another Item
-                    </a>
+                    <div class="item-body">
+                        <div class="item-meta">
+                            <span class="pill-badge" style="background:#dcfce7;color:#166534;"><i class="bi bi-check-circle-fill"></i> SOLD</span>
+                        </div>
+                        <h3 th:text="${entry.item.name}">Item Name</h3>
+                        <div class="item-price" style="color:#16a34a;" th:text="'₹' + ${#numbers.formatDecimal(entry.salePrice, 1, 2)}">₹0</div>
+                        <div class="item-date">
+                            <i class="bi bi-person-fill" style="color:#64748b;"></i>
+                            Buyer: <strong th:text="${entry.buyerName}">—</strong>
+                        </div>
+                        <a th:href="@{'/seller/items/' + ${entry.item.itemId}}" class="btn-view" style="border-color:#bbf7d0;color:#16a34a;">
+                            <i class="bi bi-eye"></i> View Details
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Client-side filtering
+        document.querySelectorAll('.filters .pill').forEach(function(pill) {
+            pill.addEventListener('click', function() {
+                document.querySelectorAll('.filters .pill').forEach(function(p) { p.classList.remove('active'); });
+                this.classList.add('active');
+                var filter = this.dataset.filter;
+                var soldSection = document.getElementById('soldSection');
+
+                if (filter === 'SOLD') {
+                    // Hide items grid, show sold section
+                    document.getElementById('itemsGrid').style.display = 'none';
+                    if (soldSection) soldSection.style.display = '';
+                    return;
+                }
+
+                // Show items grid, hide sold section
+                document.getElementById('itemsGrid').style.display = '';
+                if (soldSection) soldSection.style.display = 'none';
+
+                document.querySelectorAll('.item-card').forEach(function(card) {
+                    if (filter === 'ALL') { card.style.display = ''; return; }
+                    var status = card.dataset.status;
+                    var type = card.dataset.type;
+                    card.style.display = (status === filter || type === filter) ? '' : 'none';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

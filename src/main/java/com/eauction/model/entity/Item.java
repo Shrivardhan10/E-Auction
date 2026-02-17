@@ -22,8 +22,15 @@ public class Item {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "image_url", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
+
+    @Column(name = "image_data", columnDefinition = "BYTEA")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.BINARY)
+    private byte[] imageData;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
 
     @Column(name = "item_type", nullable = false)
     private String itemType;
@@ -112,6 +119,22 @@ public class Item {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public byte[] getImageData() {
+        return imageData;
+    }
+
+    public void setImageData(byte[] imageData) {
+        this.imageData = imageData;
+    }
+
+    public String getImageContentType() {
+        return imageContentType;
+    }
+
+    public void setImageContentType(String imageContentType) {
+        this.imageContentType = imageContentType;
     }
 
     public String getItemType() {

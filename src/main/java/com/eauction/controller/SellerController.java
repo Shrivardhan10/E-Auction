@@ -3,7 +3,7 @@ package com.eauction.controller;
 import com.eauction.model.entity.Auction;
 import com.eauction.model.entity.ExpertCertification;
 import com.eauction.model.entity.Item;
-import com.eauction.model.entity.Seller;
+import com.eauction.model.entity.User;
 import com.eauction.service.AuctionService;
 import com.eauction.service.ExpertReviewService;
 import com.eauction.service.GeminiAIService;
@@ -50,8 +50,8 @@ public class SellerController {
 
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model) {
-        Seller seller = getLoggedInSeller(session);
-        if (seller == null) return "redirect:/seller/login";
+        User seller = getLoggedInSeller(session);
+        if (seller == null) return "redirect:/login";
 
         List<Item> allItems = itemService.getItemsBySeller(seller.getUserId());
         List<Item> approvedItems = itemService.getApprovedItemsBySeller(seller.getUserId());
@@ -70,7 +70,7 @@ public class SellerController {
 
     @GetMapping("/items/upload")
     public String showUploadForm(HttpSession session) {
-        if (getLoggedInSeller(session) == null) return "redirect:/seller/login";
+        if (getLoggedInSeller(session) == null) return "redirect:/login";
         return "seller/upload-item";
     }
 
@@ -82,8 +82,8 @@ public class SellerController {
                              HttpSession session,
                              RedirectAttributes redirectAttributes) {
 
-        Seller seller = getLoggedInSeller(session);
-        if (seller == null) return "redirect:/seller/login";
+        User seller = getLoggedInSeller(session);
+        if (seller == null) return "redirect:/login";
 
         try {
             if (image.isEmpty()) {
@@ -114,20 +114,37 @@ public class SellerController {
 
     @GetMapping("/items")
     public String listItems(HttpSession session, Model model) {
-        Seller seller = getLoggedInSeller(session);
-        if (seller == null) return "redirect:/seller/login";
+        User seller = getLoggedInSeller(session);
+        if (seller == null) return "redirect:/login";
 
         List<Item> items = itemService.getItemsBySeller(seller.getUserId());
         model.addAttribute("items", items);
         model.addAttribute("seller", seller);
+
+        // Find sold items (items whose auctions are COMPLETED with a winner)
+        List<Map<String, Object>> soldItems = new java.util.ArrayList<>();
+        for (Item item : items) {
+            auctionService.getAuctionByItemId(item.getItemId()).ifPresent(auction -> {
+                if ("COMPLETED".equals(auction.getStatus()) && auction.getWinnerId() != null) {
+                    Map<String, Object> entry = new java.util.HashMap<>();
+                    entry.put("item", item);
+                    entry.put("auction", auction);
+                    User buyer = sellerService.findById(auction.getWinnerId());
+                    entry.put("buyerName", buyer != null ? buyer.getName() : "Unknown");
+                    entry.put("salePrice", auction.getCurrentHighestBid());
+                    soldItems.add(entry);
+                }
+            });
+        }
+        model.addAttribute("soldItems", soldItems);
         
         return "seller/my-items";
     }
 
     @GetMapping("/items/{itemId}")
     public String viewItem(@PathVariable UUID itemId, HttpSession session, Model model) {
-        Seller seller = getLoggedInSeller(session);
-        if (seller == null) return "redirect:/seller/login";
+        User seller = getLoggedInSeller(session);
+        if (seller == null) return "redirect:/login";
 
         Item item = itemService.getItemById(itemId);
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
@@ -149,9 +166,21 @@ public class SellerController {
 
         // Add auction data if exists (default to null so Thymeleaf can check)
         model.addAttribute("auction", null);
+        model.addAttribute("buyerName", null);
+        model.addAttribute("salePrice", null);
         auctionService.getAuctionByItemId(itemId).ifPresent(auction -> {
             auctionService.refreshStatus(auction); // update status based on current time
             model.addAttribute("auction", auction);
+
+            // For completed auctions with a winner, pass buyer info
+            if ("COMPLETED".equals(auction.getStatus()) && auction.getWinnerId() != null) {
+                User buyer = sellerService.findById(auction.getWinnerId());
+                if (buyer != null) {
+                    model.addAttribute("buyerName", buyer.getName());
+                    model.addAttribute("buyerEmail", buyer.getEmail());
+                }
+                model.addAttribute("salePrice", auction.getCurrentHighestBid());
+            }
         });
 
         return "seller/item-detail";
@@ -164,7 +193,7 @@ public class SellerController {
     @GetMapping("/items/{itemId}/review-status")
     @ResponseBody
     public Map<String, Object> reviewStatus(@PathVariable UUID itemId, HttpSession session) {
-        Seller seller = getLoggedInSeller(session);
+        User seller = getLoggedInSeller(session);
         if (seller == null) {
             return Map.of("error", "unauthorized", "done", true);
         }
@@ -189,8 +218,8 @@ public class SellerController {
     @PostMapping("/items/{itemId}/retry-review")
     public String retryReview(@PathVariable UUID itemId, HttpSession session,
                               RedirectAttributes redirectAttributes) {
-        Seller seller = getLoggedInSeller(session);
-        if (seller == null) return "redirect:/seller/login";
+        User seller = getLoggedInSeller(session);
+        if (seller == null) return "redirect:/login";
 
         Item item = itemService.getItemById(itemId);
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
@@ -245,8 +274,8 @@ public class SellerController {
                                 @RequestParam(required = false, defaultValue = "10.00") BigDecimal minIncrementPercent,
                                 HttpSession session,
                                 RedirectAttributes redirectAttributes) {
-        Seller seller = getLoggedInSeller(session);
-        if (seller == null) return "redirect:/seller/login";
+        User seller = getLoggedInSeller(session);
+        if (seller == null) return "redirect:/login";
 
         Item item = itemService.getItemById(itemId);
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
@@ -275,12 +304,18 @@ public class SellerController {
         return "redirect:/seller/items/" + itemId;
     }
 
-    private Seller getLoggedInSeller(HttpSession session) {
-        String sellerIdStr = (String) session.getAttribute("sellerId");
-        if (sellerIdStr == null) return null;
+    private User getLoggedInSeller(HttpSession session) {
+        // Try role-prefixed attribute first (multi-tab support)
+        String userIdStr = (String) session.getAttribute("SELLER_userId");
+        if (userIdStr == null) {
+            // Fallback to generic attrs
+            userIdStr = (String) session.getAttribute("userId");
+            String userRole = (String) session.getAttribute("userRole");
+            if (userIdStr == null || !"SELLER".equals(userRole)) return null;
+        }
         try {
-            UUID sellerId = UUID.fromString(sellerIdStr);
-            return sellerService.findById(sellerId);
+            UUID userId = UUID.fromString(userIdStr);
+            return sellerService.findById(userId);
         } catch (IllegalArgumentException e) {
             return null;
         }

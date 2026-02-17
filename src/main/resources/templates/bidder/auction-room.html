@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Auction Room — E-Auction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box}
+        body{background:#f4f5f7;min-height:100vh;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;margin:0}
+
+        .top-bar{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+        .top-bar .brand{font-weight:700;font-size:18px;color:#2563eb;display:flex;align-items:center;gap:8px;text-decoration:none}
+        .top-bar .nav-links{display:flex;align-items:center;gap:20px;font-size:14px}
+        .top-bar .nav-links a{color:#64748b;text-decoration:none;font-weight:500;transition:color .2s}
+        .top-bar .nav-links a:hover{color:#2563eb}
+        .top-bar .user-info{display:flex;align-items:center;gap:16px;font-size:14px;color:#64748b}
+        .top-bar .user-info a{color:#2563eb;text-decoration:none;font-weight:500}
+
+        .page-wrap{max-width:1100px;margin:0 auto;padding:24px 24px 80px}
+        .back-link{display:inline-flex;align-items:center;gap:6px;color:#64748b;font-size:14px;text-decoration:none;margin-bottom:20px;font-weight:500}
+        .back-link:hover{color:#2563eb}
+
+        /* Status indicator */
+        .status-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+        .status-live{display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#166534;padding:6px 14px;border-radius:100px;font-size:13px;font-weight:600}
+        .status-live .dot{width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse 1.5s infinite}
+        .status-completed{display:inline-flex;align-items:center;gap:6px;background:#e2e8f0;color:#475569;padding:6px 14px;border-radius:100px;font-size:13px;font-weight:600}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .timer{font-size:14px;font-weight:600;color:#64748b}
+        .timer.urgent{color:#dc2626}
+
+        /* Main grid */
+        .room-grid{display:grid;grid-template-columns:1fr 380px;gap:24px}
+        @media(max-width:860px){.room-grid{grid-template-columns:1fr}}
+
+        /* Item panel */
+        .item-panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+        .item-img{width:100%;height:280px;object-fit:cover;display:block;background:#f1f5f9}
+        .item-info{padding:22px}
+        .item-info h2{font-size:22px;font-weight:700;margin:0 0 8px;color:#0f172a}
+        .item-info .desc{font-size:14px;color:#64748b;margin-bottom:16px;line-height:1.5}
+        .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+        .detail-item{background:#f8fafc;border-radius:8px;padding:12px}
+        .detail-item .label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;font-weight:600}
+        .detail-item .value{font-size:16px;font-weight:700;color:#0f172a;margin-top:2px}
+
+        /* Bid panel */
+        .bid-panel{display:flex;flex-direction:column;gap:16px}
+
+        .current-bid-card{background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:12px;padding:24px;color:#fff;text-align:center}
+        .current-bid-card .label{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.8;font-weight:600}
+        .current-bid-card .amount{font-size:36px;font-weight:700;margin:6px 0}
+        .current-bid-card .bidder-name{font-size:14px;opacity:.8}
+        .current-bid-card .bid-count-display{font-size:12px;opacity:.7;margin-top:4px}
+
+        .bid-form-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px}
+        .bid-form-card h4{font-size:15px;font-weight:700;margin:0 0 14px;color:#0f172a}
+        .minimum-hint{font-size:13px;color:#64748b;margin-bottom:12px}
+        .minimum-hint strong{color:#2563eb}
+        .bid-input-wrap{display:flex;gap:8px;margin-bottom:10px}
+        .bid-input-wrap input{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:16px;font-weight:600;outline:none;transition:border-color .2s;font-family:inherit}
+        .bid-input-wrap input:focus{border-color:#2563eb}
+        .btn-bid{background:#2563eb;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:14px;cursor:pointer;transition:background .2s;white-space:nowrap}
+        .btn-bid:hover{background:#1d4ed8}
+        .btn-bid:disabled{opacity:.6;cursor:not-allowed}
+        .bid-message{font-size:13px;margin-top:6px;min-height:20px}
+        .bid-message.error{color:#dc2626}
+        .bid-message.success{color:#16a34a}
+
+        /* Bid log */
+        .bid-log-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;flex:1;overflow:hidden;display:flex;flex-direction:column}
+        .bid-log-card h4{font-size:15px;font-weight:700;margin:0 0 14px;color:#0f172a;display:flex;align-items:center;gap:8px}
+        .bid-log-list{flex:1;overflow-y:auto;max-height:300px}
+        .bid-log-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+        .bid-log-item:last-child{border-bottom:none}
+        .bid-log-item .bidder{font-weight:600;color:#0f172a}
+        .bid-log-item .amt{font-weight:700;color:#2563eb}
+        .bid-log-item .ts{color:#94a3b8;font-size:11px}
+
+        /* Connection status */
+        .ws-status{font-size:12px;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;margin-bottom:10px}
+        .ws-status.connected{background:#dcfce7;color:#166534}
+        .ws-status.disconnected{background:#fee2e2;color:#991b1b}
+        .ws-status .dot{width:6px;height:6px;border-radius:50%}
+        .ws-status.connected .dot{background:#16a34a}
+        .ws-status.disconnected .dot{background:#dc2626}
+
+        /* Payment section (shown after winning) */
+        .payment-card{background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:24px;color:#fff;text-align:center}
+        .payment-card h3{font-size:18px;font-weight:700;margin:0 0 6px}
+        .payment-card p{opacity:.9;font-size:14px;margin:0 0 16px}
+        .payment-card .pay-amount{font-size:28px;font-weight:700;margin:8px 0}
+        .payment-card .btn-pay{background:#fff;color:#d97706;border:none;border-radius:8px;padding:12px 32px;font-weight:700;font-size:15px;cursor:pointer;transition:transform .2s}
+        .payment-card .btn-pay:hover{transform:scale(1.03)}
+        .payment-card .deadline{font-size:12px;margin-top:10px;opacity:.8}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="/bidder/dashboard" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
+    <div class="nav-links">
+        <a href="/bidder/dashboard">Dashboard</a>
+        <a href="/bidder/auctions">Auctions</a>
+    </div>
+    <div class="user-info">
+        <span th:text="${user.name}">User</span>
+        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+</div>
+
+<div class="page-wrap">
+    <a href="/bidder/auctions" class="back-link"><i class="bi bi-arrow-left"></i> Back to Auctions</a>
+
+    <div class="status-bar">
+        <span th:if="${auction.status == 'LIVE'}" class="status-live"><span class="dot"></span> LIVE</span>
+        <span th:if="${auction.status == 'COMPLETED'}" class="status-completed"><i class="bi bi-check-circle"></i> COMPLETED</span>
+        <span th:if="${auction.status == 'PENDING'}" class="status-completed"><i class="bi bi-clock"></i> PENDING</span>
+        <span id="countdown" class="timer"></span>
+    </div>
+
+    <div class="room-grid">
+        <!-- Left: Item -->
+        <div class="item-panel">
+            <img th:if="${item.imageData != null}" th:src="@{'/api/items/' + ${item.itemId} + '/image'}" class="item-img" alt="Item">
+            <div th:if="${item.imageData == null}" class="item-img" style="display:flex;align-items:center;justify-content:center">
+                <i class="bi bi-image" style="font-size:48px;color:#cbd5e1"></i>
+            </div>
+            <div class="item-info">
+                <h2 th:text="${item.name}">Item Name</h2>
+                <p class="desc" th:text="${item.description}">Description</p>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="label">Base Price</div>
+                        <div class="value">₹<span th:text="${item.basePrice}">0</span></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Category</div>
+                        <div class="value" th:text="${item.itemType}">NORMAL</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Auction Ends</div>
+                        <div class="value" th:text="${#temporals.format(auction.endTime, 'MMM dd, hh:mm a')}">--</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Total Bids</div>
+                        <div class="value" id="bidCountDisplay" th:text="${bidCount}">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Bidding -->
+        <div class="bid-panel">
+            <!-- WebSocket status -->
+            <div id="wsStatus" class="ws-status disconnected">
+                <span class="dot"></span> <span id="wsText">Connecting...</span>
+            </div>
+
+            <!-- Current highest bid -->
+            <div class="current-bid-card">
+                <div class="label">Current Highest Bid</div>
+                <div class="amount" id="currentHighest">₹<span th:text="${currentHighest}">0</span></div>
+                <div class="bidder-name" id="highestBidderName">—</div>
+                <div class="bid-count-display"><span id="totalBids" th:text="${bidCount}">0</span> bids placed</div>
+            </div>
+
+            <!-- Bid form (only for LIVE) -->
+            <div th:if="${auction.status == 'LIVE'}" class="bid-form-card" id="bidFormCard">
+                <h4>Place Your Bid</h4>
+                <div class="minimum-hint">
+                    Minimum bid: <strong id="minBidDisplay">₹<span th:text="${minimumBid.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? minimumBid : item.basePrice}">0</span></strong>
+                    <span style="font-size:11px;color:#94a3b8"> (10% higher than current)</span>
+                </div>
+                <div class="bid-input-wrap">
+                    <input type="number" id="bidAmount" placeholder="Enter amount"
+                           th:value="${minimumBid.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? minimumBid : item.basePrice}" step="0.01">
+                    <button class="btn-bid" id="bidBtn" onclick="submitBid()">
+                        <i class="bi bi-lightning-fill"></i> Bid
+                    </button>
+                </div>
+                <div class="bid-message" id="bidMsg"></div>
+            </div>
+
+            <!-- Payment (shown if user won) -->
+            <div th:if="${pendingPayment != null}" class="payment-card" id="paymentCard">
+                <h3><i class="bi bi-trophy-fill"></i> You Won!</h3>
+                <p>Complete your 50% guarantee payment</p>
+                <div class="pay-amount">₹<span th:text="${pendingPayment.amount}">0</span></div>
+                <button class="btn-pay" onclick="processPayment()">Pay Now</button>
+                <div class="deadline">Due by: <span th:text="${#temporals.format(pendingPayment.dueBy, 'hh:mm:ss a')}">--</span></div>
+            </div>
+
+            <!-- 2nd highest bidder notification (shown via JS) -->
+            <div id="secondBidderNotice" style="display:none;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:12px;padding:20px;color:#78350f;text-align:center;">
+                <h4 style="margin:0 0 6px;font-weight:700;"><i class="bi bi-info-circle-fill"></i> You're the 2nd Highest Bidder</h4>
+                <p style="margin:0;font-size:14px;">If the highest bidder fails to complete payment within the deadline, you may be offered the item at your bid price.</p>
+            </div>
+
+            <!-- Bid Log -->
+            <div class="bid-log-card">
+                <h4><i class="bi bi-list-ul" style="color:#94a3b8"></i> Bid History</h4>
+                <div class="bid-log-list" id="bidLog">
+                    <div class="bid-log-item" style="text-align:center;color:#94a3b8">
+                        Loading bids...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:inline="javascript">
+    const auctionId = /*[[${auction.auctionId}]]*/ '';
+    const userId = /*[[${user.userId}]]*/ '';
+    const userName = /*[[${user.name}]]*/ '';
+    const auctionEnd = /*[[${auction.endTime.toString()}]]*/ '';
+    const auctionStatus = /*[[${auction.status}]]*/ '';
+
+    let stompClient = null;
+    let connected = false;
+
+    // ─── WebSocket Connection ───
+    function connectWS() {
+        const socket = new SockJS('/ws-auction');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; // Disable debug logs
+
+        stompClient.connect({}, function() {
+            connected = true;
+            updateWSStatus(true);
+
+            // Subscribe to this auction's channel
+            stompClient.subscribe('/topic/auction/' + auctionId, function(msg) {
+                const data = JSON.parse(msg.body);
+                handleMessage(data);
+            });
+
+            // Subscribe to global auction updates
+            stompClient.subscribe('/topic/auctions/updates', function(msg) {
+                const data = JSON.parse(msg.body);
+                if (data.auctionId === auctionId) {
+                    handleMessage(data);
+                }
+            });
+
+            // Load initial bids
+            loadBids();
+        }, function(error) {
+            connected = false;
+            updateWSStatus(false);
+            // Reconnect after 3 seconds
+            setTimeout(connectWS, 3000);
+        });
+    }
+
+    function updateWSStatus(isConnected) {
+        const el = document.getElementById('wsStatus');
+        const text = document.getElementById('wsText');
+        if (isConnected) {
+            el.className = 'ws-status connected';
+            text.textContent = 'Connected — Real-time updates active';
+        } else {
+            el.className = 'ws-status disconnected';
+            text.textContent = 'Disconnected — Reconnecting...';
+        }
+    }
+
+    // ─── Handle incoming WebSocket messages ───
+    function handleMessage(data) {
+        switch(data.type) {
+            case 'NEW_BID':
+                document.getElementById('currentHighest').textContent = '₹' + data.amount;
+                document.getElementById('highestBidderName').textContent = data.bidderName || 'Anonymous';
+                document.getElementById('totalBids').textContent = data.bidCount;
+                document.getElementById('bidCountDisplay').textContent = data.bidCount;
+                document.getElementById('minBidDisplay').innerHTML = '₹' + data.minimumBid;
+
+                // Update bid input minimum
+                const bidInput = document.getElementById('bidAmount');
+                if (bidInput) bidInput.value = data.minimumBid;
+
+                // Add to bid log
+                addBidToLog(data.bidderName || 'Bidder', data.amount, data.timestamp);
+
+                // Self-outbid: disable bid if this user is now the highest
+                const bidBtn2 = document.getElementById('bidBtn');
+                const bidMsg2 = document.getElementById('bidMsg');
+                if (bidBtn2 && data.bidderId === userId) {
+                    bidBtn2.disabled = true;
+                    if (bidMsg2) { bidMsg2.textContent = 'You have the highest bid. Wait for someone to outbid you.'; bidMsg2.className = 'bid-message'; bidMsg2.style.color = '#2563eb'; }
+                } else if (bidBtn2) {
+                    bidBtn2.disabled = false;
+                    if (bidMsg2 && bidMsg2.style.color === 'rgb(37, 99, 235)') bidMsg2.textContent = '';
+                }
+                break;
+
+            case 'AUCTION_ENDED':
+                location.reload();
+                break;
+
+            case 'PAYMENT_COMPLETED':
+                location.reload();
+                break;
+
+            case 'PAYMENT_FALLBACK':
+                location.reload();
+                break;
+
+            case 'AUCTION_NO_WINNER':
+                location.reload();
+                break;
+        }
+    }
+
+    // ─── Bid submission ───
+    function submitBid() {
+        const btn = document.getElementById('bidBtn');
+        const msg = document.getElementById('bidMsg');
+        const amount = document.getElementById('bidAmount').value;
+
+        if (!amount || parseFloat(amount) <= 0) {
+            msg.className = 'bid-message error';
+            msg.textContent = 'Please enter a valid bid amount';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Placing...';
+        msg.textContent = '';
+
+        fetch('/api/auction/' + auctionId + '/bid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                msg.className = 'bid-message error';
+                msg.textContent = data.error;
+            } else {
+                msg.className = 'bid-message success';
+                msg.textContent = 'Bid placed successfully!';
+                setTimeout(() => msg.textContent = '', 3000);
+            }
+        })
+        .catch(err => {
+            msg.className = 'bid-message error';
+            msg.textContent = 'Network error. Please try again.';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-lightning-fill"></i> Bid';
+        });
+    }
+
+    // ─── Load bids ───
+    function loadBids() {
+        fetch('/api/auction/' + auctionId + '/bids?limit=30')
+        .then(r => r.json())
+        .then(bids => {
+            const log = document.getElementById('bidLog');
+            if (bids.length === 0) {
+                log.innerHTML = '<div class="bid-log-item" style="text-align:center;color:#94a3b8">No bids yet. Be the first!</div>';
+                return;
+            }
+            log.innerHTML = '';
+            bids.forEach(b => addBidToLog(b.bidderName || 'Bidder', b.amount, b.ts));
+
+            // Update highest bidder name
+            if (bids.length > 0 && bids[0].bidderName) {
+                document.getElementById('highestBidderName').textContent = bids[0].bidderName;
+            }
+        })
+        .catch(() => {});
+
+        // Also refresh from state API
+        fetch('/api/auction/' + auctionId + '/state')
+        .then(r => r.json())
+        .then(state => {
+            if (state.currentHighest) {
+                document.getElementById('currentHighest').textContent = '₹' + state.currentHighest;
+            }
+            if (state.highestBidderName) {
+                document.getElementById('highestBidderName').textContent = state.highestBidderName;
+            }
+            if (state.minimumBid) {
+                document.getElementById('minBidDisplay').innerHTML = '₹' + state.minimumBid;
+                const bidInput = document.getElementById('bidAmount');
+                if (bidInput) bidInput.value = state.minimumBid;
+            }
+            if (state.bidCount !== undefined) {
+                document.getElementById('totalBids').textContent = state.bidCount;
+                document.getElementById('bidCountDisplay').textContent = state.bidCount;
+            }
+
+            // Self-outbid prevention: disable bid form if user is highest bidder
+            const bidBtn = document.getElementById('bidBtn');
+            const bidMsg = document.getElementById('bidMsg');
+            if (bidBtn && state.highestBidder === userId) {
+                bidBtn.disabled = true;
+                if (bidMsg) {
+                    bidMsg.className = 'bid-message';
+                    bidMsg.textContent = 'You have the highest bid. Wait for someone to outbid you.';
+                    bidMsg.style.color = '#2563eb';
+                }
+            } else if (bidBtn && state.highestBidder !== userId) {
+                bidBtn.disabled = false;
+                if (bidMsg && bidMsg.style.color === 'rgb(37, 99, 235)') {
+                    bidMsg.textContent = '';
+                }
+            }
+
+            // 2nd highest bidder notification
+            const notice = document.getElementById('secondBidderNotice');
+            if (notice && state.status === 'COMPLETED' && state.secondBidderId === userId) {
+                notice.style.display = '';
+            }
+        })
+        .catch(() => {});
+    }
+
+    function addBidToLog(name, amount, ts) {
+        const log = document.getElementById('bidLog');
+        // Remove "no bids" message
+        if (log.querySelector('.bid-log-item[style]')) {
+            log.innerHTML = '';
+        }
+        const el = document.createElement('div');
+        el.className = 'bid-log-item';
+        const timeStr = ts ? new Date(ts).toLocaleTimeString() : '';
+        el.innerHTML = '<div><span class="bidder">' + escapeHtml(name) + '</span><br><span class="ts">' + timeStr + '</span></div><span class="amt">₹' + amount + '</span>';
+        log.prepend(el);
+    }
+
+    // ─── Payment ───
+    function processPayment() {
+        if (!confirm('Confirm payment?')) return;
+        fetch('/bidder/payment/' + auctionId + '/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Payment failed: ' + data.error);
+            }
+        })
+        .catch(() => alert('Network error'));
+    }
+
+    // ─── Countdown timer ───
+    function updateCountdown() {
+        if (auctionStatus !== 'LIVE') return;
+        const end = new Date(auctionEnd);
+        const now = new Date();
+        const diff = end - now;
+        const el = document.getElementById('countdown');
+
+        if (diff <= 0) {
+            el.textContent = 'Auction ended';
+            el.className = 'timer';
+            return;
+        }
+
+        const hrs = Math.floor(diff / 3600000);
+        const mins = Math.floor((diff % 3600000) / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+
+        let text = '';
+        if (hrs > 0) text += hrs + 'h ';
+        text += mins + 'm ' + secs + 's remaining';
+        el.textContent = text;
+        el.className = diff < 60000 ? 'timer urgent' : 'timer';
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ─── Init ───
+    connectWS();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    // Refresh bid data every 10 seconds as fallback
+    setInterval(loadBids, 10000);
+</script>
+
+</body>
+</html>

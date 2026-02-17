@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payment — E-Auction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box}
+        body{background:#f4f5f7;min-height:100vh;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;margin:0;display:flex;align-items:center;justify-content:center}
+
+        .pay-container{max-width:480px;width:100%;padding:24px}
+
+        .pay-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden}
+        .pay-header{background:linear-gradient(135deg,#1e40af,#2563eb);padding:32px 28px;text-align:center;color:#fff}
+        .pay-header .trophy{font-size:48px;margin-bottom:12px;display:block}
+        .pay-header h2{font-size:22px;font-weight:700;margin:0 0 6px}
+        .pay-header p{opacity:.85;font-size:14px;margin:0}
+
+        .pay-body{padding:28px}
+        .pay-detail{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+        .pay-detail:last-of-type{border-bottom:none}
+        .pay-detail .label{color:#64748b}
+        .pay-detail .value{font-weight:600;color:#0f172a}
+
+        .pay-total{background:#f8fafc;border-radius:10px;padding:18px;margin:20px 0;text-align:center}
+        .pay-total .label{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;font-weight:600}
+        .pay-total .amount{font-size:32px;font-weight:700;color:#2563eb;margin-top:4px}
+
+        .countdown-bar{text-align:center;margin-bottom:16px}
+        .countdown-bar .time-left{font-size:20px;font-weight:700;color:#dc2626}
+        .countdown-bar .hint{font-size:12px;color:#94a3b8;margin-top:4px}
+
+        .btn-pay{display:block;width:100%;background:#2563eb;color:#fff;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
+        .btn-pay:hover{background:#1d4ed8}
+        .btn-pay:disabled{opacity:.6;cursor:not-allowed}
+
+        .btn-back{display:block;width:100%;text-align:center;margin-top:12px;color:#64748b;font-size:14px;text-decoration:none;font-weight:500}
+        .btn-back:hover{color:#2563eb}
+
+        .success-msg{text-align:center;padding:24px;display:none}
+        .success-msg i{font-size:48px;color:#16a34a;display:block;margin-bottom:12px}
+        .success-msg h3{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 8px}
+        .success-msg p{color:#64748b;font-size:14px;margin:0}
+    </style>
+</head>
+<body>
+
+<div class="pay-container">
+    <div class="pay-card">
+        <div class="pay-header">
+            <span class="trophy"><i class="bi bi-trophy-fill"></i></span>
+            <h2>Congratulations!</h2>
+            <p>You won the auction. Complete your guarantee payment.</p>
+        </div>
+        <div class="pay-body" id="payForm">
+            <div class="pay-detail">
+                <span class="label">Item</span>
+                <span class="value" th:text="${item.name}">Item Name</span>
+            </div>
+            <div class="pay-detail">
+                <span class="label">Winning Bid</span>
+                <span class="value">₹<span th:text="${auction.currentHighestBid}">0</span></span>
+            </div>
+            <div class="pay-detail">
+                <span class="label">Payment Type</span>
+                <span class="value">50% Guarantee Deposit</span>
+            </div>
+
+            <div class="pay-total">
+                <div class="label">Amount Due</div>
+                <div class="amount">₹<span th:text="${payment.amount}">0</span></div>
+            </div>
+
+            <div class="countdown-bar">
+                <div class="time-left" id="payTimer">--:--</div>
+                <div class="hint">Payment deadline</div>
+            </div>
+
+            <button class="btn-pay" id="payBtn" onclick="pay()">
+                <i class="bi bi-credit-card"></i> Pay ₹<span th:text="${payment.amount}">0</span>
+            </button>
+            <a href="/bidder/auctions" class="btn-back">Back to Auctions</a>
+        </div>
+        <div class="success-msg" id="successMsg">
+            <i class="bi bi-check-circle-fill"></i>
+            <h3>Payment Successful!</h3>
+            <p>Your guarantee deposit has been received.</p>
+            <a href="/bidder/auctions" class="btn-back" style="margin-top:16px">Back to Auctions</a>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const auctionId = /*[[${auction.auctionId}]]*/ '';
+    const dueBy = /*[[${payment.dueBy.toString()}]]*/ '';
+
+    function updateTimer() {
+        const deadline = new Date(dueBy);
+        const now = new Date();
+        const diff = deadline - now;
+        const el = document.getElementById('payTimer');
+
+        if (diff <= 0) {
+            el.textContent = 'EXPIRED';
+            document.getElementById('payBtn').disabled = true;
+            document.getElementById('payBtn').textContent = 'Payment Expired';
+            return;
+        }
+
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        el.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+    }
+
+    function pay() {
+        const btn = document.getElementById('payBtn');
+        if (!confirm('Confirm payment?')) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+
+        fetch('/bidder/payment/' + auctionId + '/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('payForm').style.display = 'none';
+                document.getElementById('successMsg').style.display = 'block';
+            } else {
+                alert('Payment failed: ' + data.error);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-credit-card"></i> Pay Now';
+            }
+        })
+        .catch(() => {
+            alert('Network error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-credit-card"></i> Pay Now';
+        });
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+</script>
+
+</body>
+</html>

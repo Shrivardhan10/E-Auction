@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import com.eauction.model.entity.Auction;
 import com.eauction.repository.AuctionRepository;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -27,15 +28,11 @@ public class BidService {
         }
 
 
-    public Bid placeBid(PlaceBidRequest request) {
+    @Transactional
+    public synchronized Bid placeBid(PlaceBidRequest request) {
         Auction auction = auctionRepository.findById(request.getAuctionId())
         .orElseThrow(() -> new InvalidBidException("Auction does not exist"));
 
-
-System.out.println("Java UTC Now: " + LocalDateTime.now(ZoneOffset.UTC));
-System.out.println("Auction Start : " + auction.getStartTime());
-System.out.println("Auction End   : " + auction.getEndTime());
-System.out.println("IsBefore?     : " + LocalDateTime.now().isBefore(auction.getStartTime()));
 LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         
@@ -61,8 +58,15 @@ if (!"LIVE".equalsIgnoreCase(auction.getStatus())) {
             request.getBidAmount().compareTo(minimumAllowed) < 0) {
 
         throw new InvalidBidException(
-                "Bid must be at least 10% higher than current highest bid"
+                "Bid must be at least 10% higher than current highest bid of ₹" +
+                currentHighest.toPlainString() + ". Minimum bid: ₹" + minimumAllowed.toPlainString()
         );
+    }
+
+    // For first bid, it must be at least the base price (from item)
+    if (currentHighest.compareTo(BigDecimal.ZERO) == 0 &&
+            request.getBidAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        throw new InvalidBidException("Bid amount must be greater than zero");
     }
 
     Bid newBid = new Bid(
@@ -71,7 +75,13 @@ if (!"LIVE".equalsIgnoreCase(auction.getStatus())) {
             request.getBidAmount()
     );
 
-    return bidRepository.save(newBid);
+    Bid savedBid = bidRepository.save(newBid);
+
+    // Update the auction's current highest bid
+    auction.setCurrentHighestBid(request.getBidAmount());
+    auctionRepository.save(auction);
+
+    return savedBid;
 }
 public Bid getHighestBid(UUID auctionId) {
 

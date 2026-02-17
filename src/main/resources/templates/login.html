@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Seller Login — E-Auction Platform</title>
+    <title>Login — E-Auction Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
             margin: 0; color: #1e293b;
         }
 
-        .login-container { width: 100%; max-width: 400px; padding: 20px; }
+        .login-container { width: 100%; max-width: 420px; padding: 20px; }
 
         .login-card {
             background: #fff; border: 1px solid #e2e8f0;
@@ -69,6 +69,7 @@
             font-size: 14px; display: flex; align-items: center; gap: 8px;
         }
         .alert-error { background: #fee2e2; color: #991b1b; }
+        .alert-info  { background: #e0e7ff; color: #3730a3; }
 
         .demo-box {
             margin-top: 22px; padding: 16px;
@@ -76,10 +77,21 @@
             border-radius: 10px; font-size: 13px; color: #64748b;
         }
         .demo-box strong { color: #475569; }
+        .demo-row {
+            display: flex; align-items: center; gap: 8px; margin-top: 7px;
+        }
+        .role-pill {
+            font-size: 10px; font-weight: 700; letter-spacing: .3px;
+            padding: 2px 8px; border-radius: 4px; color: #fff;
+            text-transform: uppercase;
+        }
+        .role-seller { background: #16a34a; }
+        .role-bidder { background: #2563eb; }
+        .role-admin  { background: #dc2626; }
         .pwd-pill {
             display: inline-block; background: #e0e7ff; color: #4f46e5;
             padding: 2px 8px; border-radius: 4px; font-weight: 600;
-            font-size: 12px; margin-left: 4px;
+            font-size: 12px;
         }
 
         .spinner-sm {
@@ -96,19 +108,22 @@
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h1><i class="bi bi-shop"></i> E-Auction</h1>
-                <p>Seller Portal</p>
+                <h1><i class="bi bi-hammer"></i> E-Auction</h1>
+                <p>Collectibles &amp; Rare Items Auction Platform</p>
             </div>
 
             <div class="login-body">
                 <div th:if="${error}" class="alert-box alert-error">
                     <i class="bi bi-exclamation-circle-fill"></i> <span th:text="${error}"></span>
                 </div>
+                <div th:if="${info}" class="alert-box alert-info">
+                    <i class="bi bi-info-circle-fill"></i> <span th:text="${info}"></span>
+                </div>
 
-                <form action="/seller/login" method="post" id="loginForm">
+                <form action="/login" method="post" id="loginForm">
                     <div class="field">
                         <label for="email"><i class="bi bi-envelope"></i> Email Address</label>
-                        <input type="email" id="email" name="email" placeholder="seller@example.com" required />
+                        <input type="email" id="email" name="email" placeholder="you@example.com" required />
                     </div>
                     <div class="field">
                         <label for="password"><i class="bi bi-lock"></i> Password</label>
@@ -121,9 +136,17 @@
                 </form>
 
                 <div class="demo-box">
-                    <strong><i class="bi bi-info-circle"></i> Demo</strong><br/>
-                    Email: priya.sharma@gmail.com<br/>
-                    Password: <span class="pwd-pill">ps1234</span>
+                    <strong><i class="bi bi-info-circle"></i> Demo Accounts</strong>
+                    <span style="margin-left:6px;">(password: <span class="pwd-pill">ps1234</span>)</span>
+                    <div class="demo-row"><span class="role-pill role-seller">Seller</span> vikram.mehta@gmail.com</div>
+                    <div class="demo-row"><span class="role-pill role-seller">Seller</span> priya.sharma@gmail.com</div>
+                    <div class="demo-row"><span class="role-pill role-bidder">Bidder</span> arjun.patel@gmail.com</div>
+                    <div class="demo-row"><span class="role-pill role-bidder">Bidder</span> sneha.reddy@gmail.com</div>
+                    <div class="demo-row"><span class="role-pill role-admin">Admin</span> neha.gupta@eauction.in</div>
+                </div>
+
+                <div style="text-align:center;margin-top:22px;padding-top:22px;border-top:1px solid #f1f5f9;font-size:14px;color:#64748b;">
+                    Don't have an account? <a href="/register" style="color:#6366f1;font-weight:600;text-decoration:none;">Create one</a>
                 </div>
             </div>
         </div>

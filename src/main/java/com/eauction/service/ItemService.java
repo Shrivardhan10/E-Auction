@@ -51,9 +51,6 @@ public class ItemService {
                            MultipartFile imageFile,
                            UUID sellerId) throws IOException {
 
-        // Save the uploaded image
-        String imageUrl = saveImage(imageFile);
-
         // Determine item type
         String itemType = basePrice.compareTo(PREMIUM_THRESHOLD) > 0 ? "PREMIUM" : "NORMAL";
 
@@ -62,10 +59,17 @@ public class ItemService {
         item.setSellerId(sellerId);
         item.setName(name);
         item.setDescription(description);
-        item.setBasePrice(basePrice);
-        item.setImageUrl(imageUrl);
         item.setItemType(itemType);
+        item.setBasePrice(basePrice);
         item.setAdminStatus("PENDING");
+
+        // Store image as binary data in the database
+        if (imageFile != null && !imageFile.isEmpty()) {
+            item.setImageData(imageFile.getBytes());
+            item.setImageContentType(imageFile.getContentType());
+            // Set imageUrl to the serving endpoint
+            item.setImageUrl("/api/items/" + item.getItemId() + "/image");
+        }
 
         Item savedItem = itemRepository.save(item);
 

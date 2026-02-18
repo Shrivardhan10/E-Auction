@@ -162,13 +162,13 @@
 </head>
 <body>
     <header class="top-bar">
-        <a class="brand" href="/admin/dashboard">
+        <a class="brand" th:href="@{/admin/dashboard(token=${token})}">
             <i class="bi bi-shield-lock-fill"></i> E-Auction Admin
         </a>
         <div class="user-info">
-            <a href="/admin/auctions" style="color:#dc2626;text-decoration:none;font-weight:600"><i class="bi bi-broadcast"></i> Auctions</a>
+            <a th:href="@{/admin/auctions(token=${token})}" style="color:#dc2626;text-decoration:none;font-weight:600"><i class="bi bi-broadcast"></i> Auctions</a>
             <span><i class="bi bi-person-circle"></i> <span th:text="${user.name}">Admin</span></span>
-            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+            <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
         </div>
     </header>
     
@@ -265,7 +265,7 @@
                                 <span th:text="${#temporals.format(item.createdAt, 'dd MMM yyyy')}">01 Jan 2026</span>
                             </td>
                             <td style="text-align:center;white-space:nowrap;">
-                                <form th:action="@{'/admin/items/' + ${item.itemId} + '/approve'}" method="post" style="display:inline;">
+                                <form th:action="@{'/admin/items/' + ${item.itemId} + '/approve?token=' + ${token}}" method="post" style="display:inline;">
                                     <button type="submit" class="btn-sm-action btn-approve">
                                         <i class="bi bi-check-lg"></i> Approve
                                     </button>
@@ -325,7 +325,7 @@
                             <td style="font-size:13px;color:#94a3b8;"
                                 th:text="${u.createdAt != null ? #temporals.format(u.createdAt, 'dd MMM yyyy') : '—'}">—</td>
                             <td style="text-align:center;">
-                                <form th:action="@{'/admin/users/' + ${u.userId} + '/toggle-status'}" method="post" style="display:inline;">
+                                <form th:action="@{'/admin/users/' + ${u.userId} + '/toggle-status?token=' + ${token}}" method="post" style="display:inline;">
                                     <button type="submit"
                                             th:class="${u.isActive ? 'btn-sm-action btn-toggle-active' : 'btn-sm-action btn-toggle-inactive'}"
                                             th:text="${u.isActive ? 'Deactivate' : 'Activate'}">
@@ -373,10 +373,11 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script th:inline="javascript">
+        const token = /*[[${token}]]*/ '';
         function openRejectModal(btn) {
             document.getElementById('rejectItemName').textContent = btn.getAttribute('data-item-name');
-            document.getElementById('rejectForm').action = '/admin/items/' + btn.getAttribute('data-item-id') + '/reject';
+            document.getElementById('rejectForm').action = '/admin/items/' + btn.getAttribute('data-item-id') + '/reject?token=' + token;
             new bootstrap.Modal(document.getElementById('rejectModal')).show();
         }
         function switchTab(tabId, btn) {

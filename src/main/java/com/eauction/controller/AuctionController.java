@@ -61,8 +61,9 @@ public class AuctionController {
     // ─────────────────────────────────────────────────────────────
 
     @GetMapping("/bidder/auctions")
-    public String bidderAuctionList(HttpSession session, Model model) {
-        User bidder = getLoggedInUser(session, "BIDDER");
+    public String bidderAuctionList(@RequestParam(required = false) String token,
+                                   HttpSession session, Model model) {
+        User bidder = getLoggedInUser(session, "BIDDER", token);
         if (bidder == null) return "redirect:/login";
 
         List<Auction> liveAuctions = auctionRepository.findByStatus("LIVE");
@@ -82,16 +83,19 @@ public class AuctionController {
         model.addAttribute("liveAuctions", liveList);
         model.addAttribute("pendingAuctions", pendingList);
         model.addAttribute("pendingPayments", myPendingPayments);
+        model.addAttribute("token", token);
         return "bidder/auctions";
     }
 
     @GetMapping("/bidder/auction/{auctionId}")
-    public String bidderAuctionRoom(@PathVariable UUID auctionId, HttpSession session, Model model) {
-        User bidder = getLoggedInUser(session, "BIDDER");
+    public String bidderAuctionRoom(@PathVariable UUID auctionId,
+                                   @RequestParam(required = false) String token,
+                                   HttpSession session, Model model) {
+        User bidder = getLoggedInUser(session, "BIDDER", token);
         if (bidder == null) return "redirect:/login";
 
         Auction auction = auctionRepository.findById(auctionId).orElse(null);
-        if (auction == null) return "redirect:/bidder/auctions";
+        if (auction == null) return "redirect:/bidder/auctions?token=" + token;
 
         Item item = itemService.getItemById(auction.getItemId());
 
@@ -118,6 +122,7 @@ public class AuctionController {
         model.addAttribute("minimumBid", minimumBid);
         model.addAttribute("bidCount", bidCount);
         model.addAttribute("pendingPayment", pendingPayment);
+        model.addAttribute("token", token);
         return "bidder/auction-room";
     }
 
@@ -247,7 +252,9 @@ public class AuctionController {
     public Map<String, Object> placeBidRest(@PathVariable UUID auctionId,
                                              @RequestBody Map<String, String> body,
                                              HttpSession session) {
-        User bidder = getLoggedInUser(session, "BIDDER");
+        // Token is passed in the request body for API calls
+        String token = body.get("token");
+        User bidder = getLoggedInUser(session, "BIDDER", token);
         if (bidder == null) return Map.of("error", "Unauthorized");
 
         try {
@@ -283,19 +290,21 @@ public class AuctionController {
     // ─────────────────────────────────────────────────────────────
 
     @GetMapping("/bidder/payment/{auctionId}")
-    public String paymentPage(@PathVariable UUID auctionId, HttpSession session, Model model) {
-        User bidder = getLoggedInUser(session, "BIDDER");
+    public String paymentPage(@PathVariable UUID auctionId,
+                             @RequestParam(required = false) String token,
+                             HttpSession session, Model model) {
+        User bidder = getLoggedInUser(session, "BIDDER", token);
         if (bidder == null) return "redirect:/login";
 
         Auction auction = auctionRepository.findById(auctionId).orElse(null);
-        if (auction == null) return "redirect:/bidder/auctions";
+        if (auction == null) return "redirect:/bidder/auctions?token=" + token;
 
         Payment payment = paymentRepository
                 .findByAuctionIdAndBidderIdAndPaymentType(auctionId, bidder.getUserId(), "GUARANTEE")
                 .orElse(null);
 
         if (payment == null || !"PENDING".equals(payment.getStatus())) {
-            return "redirect:/bidder/auctions";
+            return "redirect:/bidder/auctions?token=" + token;
         }
 
         Item item = itemService.getItemById(auction.getItemId());
@@ -304,13 +313,17 @@ public class AuctionController {
         model.addAttribute("auction", auction);
         model.addAttribute("item", item);
         model.addAttribute("payment", payment);
+        model.addAttribute("token", token);
         return "bidder/payment";
     }
 
     @PostMapping("/bidder/payment/{auctionId}/pay")
     @ResponseBody
-    public Map<String, Object> processPayment(@PathVariable UUID auctionId, HttpSession session) {
-        User bidder = getLoggedInUser(session, "BIDDER");
+    public Map<String, Object> processPayment(@PathVariable UUID auctionId,
+                                              @RequestBody(required = false) Map<String, String> body,
+                                              HttpSession session) {
+        String token = body != null ? body.get("token") : null;
+        User bidder = getLoggedInUser(session, "BIDDER", token);
         if (bidder == null) return Map.of("error", "Unauthorized");
 
         Payment payment = paymentRepository
@@ -348,20 +361,23 @@ public class AuctionController {
     // ─────────────────────────────────────────────────────────────
 
     @GetMapping("/seller/auction/{auctionId}")
-    public String sellerAuctionDashboard(@PathVariable UUID auctionId, HttpSession session, Model model) {
-        User seller = getLoggedInUser(session, "SELLER");
+    public String sellerAuctionDashboard(@PathVariable UUID auctionId,
+                                        @RequestParam(required = false) String token,
+                                        HttpSession session, Model model) {
+        User seller = getLoggedInUser(session, "SELLER", token);
         if (seller == null) return "redirect:/login";
 
         Auction auction = auctionRepository.findById(auctionId).orElse(null);
-        if (auction == null) return "redirect:/seller/items";
+        if (auction == null) return "redirect:/seller/items?token=" + token;
 
         Item item = itemService.getItemById(auction.getItemId());
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
-            return "redirect:/seller/items";
+            return "redirect:/seller/items?token=" + token;
         }
 
         populateAuctionDashboardModel(model, auction, item, auctionId);
         model.addAttribute("user", seller);
+        model.addAttribute("token", token);
         return "seller/auction-dashboard";
     }
 
@@ -370,8 +386,9 @@ public class AuctionController {
     // ─────────────────────────────────────────────────────────────
 
     @GetMapping("/admin/auctions")
-    public String adminAuctionList(HttpSession session, Model model) {
-        User admin = getLoggedInUser(session, "ADMIN");
+    public String adminAuctionList(@RequestParam(required = false) String token,
+                                  HttpSession session, Model model) {
+        User admin = getLoggedInUser(session, "ADMIN", token);
         if (admin == null) return "redirect:/login";
 
         List<Auction> liveAuctions = auctionRepository.findByStatus("LIVE");
@@ -382,21 +399,25 @@ public class AuctionController {
         model.addAttribute("liveAuctions", enrichAuctions(liveAuctions));
         model.addAttribute("completedAuctions", enrichAuctions(completedAuctions));
         model.addAttribute("pendingAuctions", enrichAuctions(pendingAuctions));
+        model.addAttribute("token", token);
         return "admin/auctions";
     }
 
     @GetMapping("/admin/auction/{auctionId}")
-    public String adminAuctionDashboard(@PathVariable UUID auctionId, HttpSession session, Model model) {
-        User admin = getLoggedInUser(session, "ADMIN");
+    public String adminAuctionDashboard(@PathVariable UUID auctionId,
+                                       @RequestParam(required = false) String token,
+                                       HttpSession session, Model model) {
+        User admin = getLoggedInUser(session, "ADMIN", token);
         if (admin == null) return "redirect:/login";
 
         Auction auction = auctionRepository.findById(auctionId).orElse(null);
-        if (auction == null) return "redirect:/admin/auctions";
+        if (auction == null) return "redirect:/admin/auctions?token=" + token;
 
         Item item = itemService.getItemById(auction.getItemId());
 
         populateAuctionDashboardModel(model, auction, item, auctionId);
         model.addAttribute("user", admin);
+        model.addAttribute("token", token);
         return "admin/auction-dashboard";
     }
 
@@ -490,14 +511,14 @@ public class AuctionController {
         model.addAttribute("highestBidderName", highestBidderName);
     }
 
-    private User getLoggedInUser(HttpSession session, String requiredRole) {
-        // Try role-prefixed attribute first (multi-tab support)
-        String userIdStr = (String) session.getAttribute(requiredRole + "_userId");
-        if (userIdStr == null) {
-            // Fallback to generic attrs
-            userIdStr = (String) session.getAttribute("userId");
-            String userRole = (String) session.getAttribute("userRole");
-            if (userIdStr == null || !requiredRole.equals(userRole)) return null;
+    private User getLoggedInUser(HttpSession session, String requiredRole, String token) {
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+        String userIdStr = (String) session.getAttribute("user_" + token);
+        String role = (String) session.getAttribute("role_" + token);
+        if (userIdStr == null || !requiredRole.equals(role)) {
+            return null;
         }
         try {
             return sellerService.findById(UUID.fromString(userIdStr));

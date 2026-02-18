@@ -119,12 +119,12 @@
 
     <!-- Top bar -->
     <div class="top-bar">
-        <a class="brand" href="/seller/dashboard"><i class="bi bi-hammer"></i> E-Auction</a>
+        <a class="brand" th:href="@{/seller/dashboard(token=${token})}"><i class="bi bi-hammer"></i> E-Auction</a>
         <div class="nav-links">
-            <a href="/seller/dashboard"><i class="bi bi-house"></i> Dashboard</a>
-            <a href="/seller/items"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
-            <a href="/seller/items/upload" class="active"><i class="bi bi-plus-circle"></i> Upload</a>
-            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            <a th:href="@{/seller/dashboard(token=${token})}"><i class="bi bi-house"></i> Dashboard</a>
+            <a th:href="@{/seller/items(token=${token})}"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
+            <a th:href="@{/seller/items/upload(token=${token})}" class="active"><i class="bi bi-plus-circle"></i> Upload</a>
+            <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
         </div>
     </div>
 
@@ -146,7 +146,7 @@
         <p class="page-subtitle">List an item for auction. Items over ₹10,000 are classified as Premium and require AI certification.</p>
 
         <div class="form-card">
-            <form action="/seller/items/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <form th:action="@{/seller/items/upload(token=${token})}" method="post" enctype="multipart/form-data" id="uploadForm">
 
                 <!-- Name -->
                 <div class="field">

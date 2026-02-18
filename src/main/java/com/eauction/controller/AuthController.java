@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.UUID;
+
 /**
  * Universal authentication controller for all user roles.
  * Handles login at /login and redirects to role-specific dashboards.
@@ -51,27 +53,23 @@ public class AuthController {
             return "login";
         }
 
-        // Multi-tab support: store role-prefixed session attributes so one
-        // browser session can hold multiple role contexts (e.g. seller in tab 1,
-        // bidder in tab 2). We do NOT invalidate the old session.
+        // Multi-tab support: generate unique token for each login session
         HttpSession session = request.getSession(true);
 
-        String role = user.getRole();
-        session.setAttribute(role + "_userId", user.getUserId().toString());
-        session.setAttribute(role + "_userName", user.getName());
-        session.setAttribute(role + "_userEmail", user.getEmail());
+        // Generate unique token for this login (allows multiple logins per browser)
+        String loginToken = UUID.randomUUID().toString();
+        
+        // Store user data with unique token key
+        session.setAttribute("user_" + loginToken, user.getUserId().toString());
+        session.setAttribute("role_" + loginToken, user.getRole());
+        session.setAttribute("name_" + loginToken, user.getName());
+        session.setAttribute("email_" + loginToken, user.getEmail());
 
-        // Also keep generic attrs for backward compatibility
-        session.setAttribute("userId", user.getUserId().toString());
-        session.setAttribute("userName", user.getName());
-        session.setAttribute("userEmail", user.getEmail());
-        session.setAttribute("userRole", role);
-
-        // Redirect based on role
+        // Redirect based on role WITH token in URL
         return switch (user.getRole()) {
-            case "SELLER" -> "redirect:/seller/dashboard";
-            case "ADMIN" -> "redirect:/admin/dashboard";
-            case "BIDDER" -> "redirect:/bidder/dashboard";
+            case "SELLER" -> "redirect:/seller/dashboard?token=" + loginToken;
+            case "ADMIN" -> "redirect:/admin/dashboard?token=" + loginToken;
+            case "BIDDER" -> "redirect:/bidder/dashboard?token=" + loginToken;
             case "DELIVERY" -> {
                 model.addAttribute("info", "Delivery dashboard is coming soon!");
                 yield "login";
@@ -84,8 +82,16 @@ public class AuthController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
+    public String logout(@RequestParam(required = false) String token, HttpSession session) {
+        if (token != null) {
+            // Only remove this specific login's data
+            session.removeAttribute("user_" + token);
+            session.removeAttribute("role_" + token);
+            session.removeAttribute("name_" + token);
+            session.removeAttribute("email_" + token);
+        } else {
+            session.invalidate();
+        }
         return "redirect:/login";
     }
 

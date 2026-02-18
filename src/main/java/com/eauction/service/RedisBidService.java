@@ -3,7 +3,9 @@ package com.eauction.service;
 import com.eauction.exception.InvalidBidException;
 import com.eauction.model.entity.Auction;
 import com.eauction.model.entity.Bid;
+import com.eauction.model.entity.Item;
 import com.eauction.repository.AuctionRepository;
+import com.eauction.repository.ItemRepository;
 import com.eauction.repository.BidRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,7 @@ public class RedisBidService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ItemRepository itemRepository;
 
     // Track which auctions are activated in Redis
     private final Set<UUID> activatedAuctions = ConcurrentHashMap.newKeySet();
@@ -40,11 +43,12 @@ public class RedisBidService {
     public RedisBidService(RedisTemplate<String, String> redis,
                            BidRepository bidRepository,
                            AuctionRepository auctionRepository,
-                           SimpMessagingTemplate messagingTemplate) {
+                           SimpMessagingTemplate messagingTemplate,ItemRepository itemRepository) {
         this.redis = redis;
         this.bidRepository = bidRepository;
         this.auctionRepository = auctionRepository;
         this.messagingTemplate = messagingTemplate;
+        this.itemRepository = itemRepository;
     }
 
     /**
@@ -100,88 +104,261 @@ public class RedisBidService {
      * Also persists to PostgreSQL.
      * Returns the bid result and broadcasts via WebSocket.
      */
+    // public Bid placeBid(UUID auctionId, UUID bidderId, BigDecimal amount) {
+    //     String highestKey = "auction:" + auctionId + ":highest";
+    //     String bidsKey = "auction:" + auctionId + ":bids";
+    //     String stateKey = "auction:" + auctionId + ":state";
+
+    //     // Check auction is LIVE in Redis
+    //     String status = (String) redis.opsForHash().get(stateKey, "status");
+    //     if (!"LIVE".equals(status)) {
+    //         throw new InvalidBidException("Auction is not active");
+    //     }
+
+    //     // Check auction hasn't expired
+    //     String endTimeStr = (String) redis.opsForHash().get(stateKey, "endTime");
+    //     if (endTimeStr != null && LocalDateTime.parse(endTimeStr).isBefore(LocalDateTime.now())) {
+    //         throw new InvalidBidException("Auction has ended");
+    //     }
+
+    //     // Self-outbid prevention: bidder cannot bid if they already hold the highest bid
+    //     String currentHighestBidder = (String) redis.opsForHash().get(stateKey, "highestBidder");
+    //     if (currentHighestBidder != null && currentHighestBidder.equals(bidderId.toString())) {
+    //         throw new InvalidBidException("You already have the highest bid. Wait for another bidder to outbid you.");
+    //     }
+
+    //     // Atomic Lua script: validate 10% rule and set new highest
+    //     String luaScript = """
+    //         local currentHighest = tonumber(redis.call('GET', KEYS[1]) or '0')
+    //         local newBid = tonumber(ARGV[1])
+    //         local minimumRequired = currentHighest * 1.10
+
+    //         if currentHighest > 0 and newBid < minimumRequired then
+    //             return '-1:' .. string.format('%.2f', currentHighest) .. ':' .. string.format('%.2f', minimumRequired)
+    //         end
+
+    //         if currentHighest == 0 and newBid <= 0 then
+    //             return '-2:Bid must be greater than zero'
+    //         end
+
+    //         redis.call('SET', KEYS[1], ARGV[1])
+    //         redis.call('ZADD', KEYS[2], newBid, ARGV[2])
+    //         redis.call('HSET', KEYS[3], 'highestBid', ARGV[1])
+    //         redis.call('HSET', KEYS[3], 'highestBidder', ARGV[3])
+    //         return '1'
+    //         """;
+
+    //     String bidId = UUID.randomUUID().toString();
+    //     LocalDateTime now = LocalDateTime.now();
+    //     String bidJson = String.format(
+    //             "{\"bidId\":\"%s\",\"bidderId\":\"%s\",\"amount\":%s,\"ts\":\"%s\"}",
+    //             bidId, bidderId, amount.toPlainString(), now
+    //     );
+
+    //     DefaultRedisScript<String> script = new DefaultRedisScript<>(luaScript, String.class);
+    //     String result = redis.execute(script,
+    //             List.of(highestKey, bidsKey, stateKey),
+    //             amount.toPlainString(), bidJson, bidderId.toString()
+    //     );
+
+    //     if (result != null && result.startsWith("-1:")) {
+    //         String[] parts = result.split(":", 3);
+    //         throw new InvalidBidException(
+    //                 "Bid must be at least 10% higher than current highest bid of ₹" + parts[1] +
+    //                 ". Minimum bid: ₹" + parts[2]
+    //         );
+    //     }
+    //     if (result != null && result.startsWith("-2:")) {
+    //         throw new InvalidBidException(result.substring(3));
+    //     }
+
+    //     // Persist to PostgreSQL as well
+    //     Bid newBid = new Bid(auctionId, bidderId, amount);
+    //     Bid savedBid = bidRepository.save(newBid);
+
+    //     // Update auction's current highest in PostgreSQL
+    //     Auction auction = auctionRepository.findById(auctionId).orElse(null);
+    //     if (auction != null) {
+    //         auction.setCurrentHighestBid(amount);
+    //         auctionRepository.save(auction);
+    //     }
+
+    //     log.info("Bid placed: auction={}, bidder={}, amount={}", auctionId, bidderId, amount);
+    //     return savedBid;
+    // }
     public Bid placeBid(UUID auctionId, UUID bidderId, BigDecimal amount) {
-        String highestKey = "auction:" + auctionId + ":highest";
-        String bidsKey = "auction:" + auctionId + ":bids";
-        String stateKey = "auction:" + auctionId + ":state";
 
-        // Check auction is LIVE in Redis
-        String status = (String) redis.opsForHash().get(stateKey, "status");
-        if (!"LIVE".equals(status)) {
-            throw new InvalidBidException("Auction is not active");
-        }
+    String highestKey = "auction:" + auctionId + ":highest";
+    String bidsKey = "auction:" + auctionId + ":bids";
+    String stateKey = "auction:" + auctionId + ":state";
 
-        // Check auction hasn't expired
-        String endTimeStr = (String) redis.opsForHash().get(stateKey, "endTime");
-        if (endTimeStr != null && LocalDateTime.parse(endTimeStr).isBefore(LocalDateTime.now())) {
-            throw new InvalidBidException("Auction has ended");
-        }
+    // -----------------------------
+    // 1. Validate Auction State
+    // -----------------------------
 
-        // Self-outbid prevention: bidder cannot bid if they already hold the highest bid
-        String currentHighestBidder = (String) redis.opsForHash().get(stateKey, "highestBidder");
-        if (currentHighestBidder != null && currentHighestBidder.equals(bidderId.toString())) {
-            throw new InvalidBidException("You already have the highest bid. Wait for another bidder to outbid you.");
-        }
+    String status = (String) redis.opsForHash().get(stateKey, "status");
+    if (!"LIVE".equals(status)) {
+        throw new InvalidBidException("Auction is not active");
+    }
 
-        // Atomic Lua script: validate 10% rule and set new highest
-        String luaScript = """
-            local currentHighest = tonumber(redis.call('GET', KEYS[1]) or '0')
-            local newBid = tonumber(ARGV[1])
+    String endTimeStr = (String) redis.opsForHash().get(stateKey, "endTime");
+    if (endTimeStr != null &&
+            LocalDateTime.parse(endTimeStr).isBefore(LocalDateTime.now())) {
+        throw new InvalidBidException("Auction has ended");
+    }
+
+    // Prevent self-outbid
+    String currentHighestBidder =
+            (String) redis.opsForHash().get(stateKey, "highestBidder");
+
+    if (currentHighestBidder != null &&
+            currentHighestBidder.equals(bidderId.toString())) {
+        throw new InvalidBidException(
+                "You already have the highest bid. Wait for another bidder to outbid you."
+        );
+    }
+
+    // -----------------------------
+    // 2. Fetch Base Price (DB)
+    // -----------------------------
+
+    Auction auction = auctionRepository.findById(auctionId)
+        .orElseThrow(() -> new InvalidBidException("Auction not found"));
+
+Item item = itemRepository.findById(auction.getItemId())
+        .orElseThrow(() -> new InvalidBidException("Item not found"));
+
+BigDecimal basePrice = item.getBasePrice();
+
+
+
+    // -----------------------------
+    // 3. Atomic Lua Script
+    // -----------------------------
+
+    String luaScript = """
+        local currentHighest = tonumber(redis.call('GET', KEYS[1]) or '0')
+        local newBid = tonumber(ARGV[1])
+        local basePrice = tonumber(ARGV[4])
+
+        -- FIRST BID CASE
+        if currentHighest == 0 then
+            if newBid < basePrice then
+                return '-3:' .. string.format('%.2f', basePrice)
+            end
+        else
+            -- SUBSEQUENT BID CASE (10% RULE)
             local minimumRequired = currentHighest * 1.10
-
-            if currentHighest > 0 and newBid < minimumRequired then
-                return '-1:' .. string.format('%.2f', currentHighest) .. ':' .. string.format('%.2f', minimumRequired)
+            if newBid < minimumRequired then
+                return '-1:' .. string.format('%.2f', currentHighest)
+                       .. ':' .. string.format('%.2f', minimumRequired)
             end
+        end
 
-            if currentHighest == 0 and newBid <= 0 then
-                return '-2:Bid must be greater than zero'
-            end
+        -- ACCEPT BID
+        redis.call('SET', KEYS[1], ARGV[1])
+        redis.call('ZADD', KEYS[2], newBid, ARGV[2])
+        redis.call('HSET', KEYS[3], 'highestBid', ARGV[1])
+        redis.call('HSET', KEYS[3], 'highestBidder', ARGV[3])
 
-            redis.call('SET', KEYS[1], ARGV[1])
-            redis.call('ZADD', KEYS[2], newBid, ARGV[2])
-            redis.call('HSET', KEYS[3], 'highestBid', ARGV[1])
-            redis.call('HSET', KEYS[3], 'highestBidder', ARGV[3])
-            return '1'
-            """;
+        return '1'
+        """;
 
-        String bidId = UUID.randomUUID().toString();
-        LocalDateTime now = LocalDateTime.now();
-        String bidJson = String.format(
-                "{\"bidId\":\"%s\",\"bidderId\":\"%s\",\"amount\":%s,\"ts\":\"%s\"}",
-                bidId, bidderId, amount.toPlainString(), now
-        );
+    String bidId = UUID.randomUUID().toString();
+    LocalDateTime now = LocalDateTime.now();
 
-        DefaultRedisScript<String> script = new DefaultRedisScript<>(luaScript, String.class);
-        String result = redis.execute(script,
-                List.of(highestKey, bidsKey, stateKey),
-                amount.toPlainString(), bidJson, bidderId.toString()
-        );
+    String bidJson = String.format(
+            "{\"bidId\":\"%s\",\"bidderId\":\"%s\",\"amount\":%s,\"ts\":\"%s\"}",
+            bidId,
+            bidderId,
+            amount.toPlainString(),
+            now
+    );
 
+    DefaultRedisScript<String> script =
+            new DefaultRedisScript<>(luaScript, String.class);
+
+    // String result = redis.execute(
+    //         script,
+    //         List.of(highestKey, bidsKey, stateKey),
+    //         amount.toPlainString(),
+    //         bidJson,
+    //         bidderId.toString(),
+    //         basePrice.toPlainString()
+    // );
+
+    // // -----------------------------
+    // // 4. Handle Script Errors
+    // // -----------------------------
+
+    // if (result != null && result.startsWith("-1:")) {
+    //     String[] parts = result.split(":", 3);
+    //     throw new InvalidBidException(
+    //             "Bid must be at least 10% higher than current highest bid of ₹"
+    //                     + parts[1] +
+    //                     ". Minimum required: ₹" + parts[2]
+    //     );
+    // }
+
+    // if (result != null && result.startsWith("-3:")) {
+    //     String requiredBase = result.substring(3);
+    //     throw new InvalidBidException(
+    //             "First bid must be at least the base price of ₹" + requiredBase
+    //     );
+    // }
+        String result = redis.execute(
+            script,
+            List.of(highestKey, bidsKey, stateKey),
+            amount.toPlainString(),
+            bidJson,
+            bidderId.toString(),
+            basePrice.toPlainString()
+    );
+
+    // -----------------------------
+    // 4. Handle Script Errors
+    // -----------------------------
+
+    // ✅ Only accept if result is EXACTLY "1"
+    if (!"1".equals(result)) {
         if (result != null && result.startsWith("-1:")) {
             String[] parts = result.split(":", 3);
             throw new InvalidBidException(
-                    "Bid must be at least 10% higher than current highest bid of ₹" + parts[1] +
-                    ". Minimum bid: ₹" + parts[2]
+                    "Bid must be at least 10% higher than current highest bid of ₹"
+                            + parts[1] +
+                            ". Minimum required: ₹" + parts[2]
             );
         }
-        if (result != null && result.startsWith("-2:")) {
-            throw new InvalidBidException(result.substring(3));
+
+        if (result != null && result.startsWith("-3:")) {
+            String requiredBase = result.substring(3);
+            throw new InvalidBidException(
+                    "First bid must be at least the base price of ₹" + requiredBase
+            );
         }
 
-        // Persist to PostgreSQL as well
-        Bid newBid = new Bid(auctionId, bidderId, amount);
-        Bid savedBid = bidRepository.save(newBid);
-
-        // Update auction's current highest in PostgreSQL
-        Auction auction = auctionRepository.findById(auctionId).orElse(null);
-        if (auction != null) {
-            auction.setCurrentHighestBid(amount);
-            auctionRepository.save(auction);
-        }
-
-        log.info("Bid placed: auction={}, bidder={}, amount={}", auctionId, bidderId, amount);
-        return savedBid;
+        // Unexpected result from Lua script - reject bid
+        throw new InvalidBidException("Bid validation failed: Redis returned " + result);
     }
+
+    // Only reach here if result == "1" (bid accepted by Redis)
+
+    // -----------------------------
+    // 5. Persist to PostgreSQL
+    // -----------------------------
+
+    Bid newBid = new Bid(auctionId, bidderId, amount);
+    Bid savedBid = bidRepository.save(newBid);
+
+    auction.setCurrentHighestBid(amount);
+    auctionRepository.save(auction);
+
+    log.info("Bid placed: auction={}, bidder={}, amount={}",
+            auctionId, bidderId, amount);
+
+    return savedBid;
+}
+
 
     /**
      * Get current highest bid from Redis.

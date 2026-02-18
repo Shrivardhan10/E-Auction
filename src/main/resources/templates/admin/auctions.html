@@ -55,14 +55,14 @@
 <body>
 
 <div class="top-bar">
-    <a href="/admin/dashboard" class="brand"><i class="bi bi-shield-lock"></i> E-Auction Admin</a>
+    <a th:href="@{/admin/dashboard(token=${token})}" class="brand"><i class="bi bi-shield-lock"></i> E-Auction Admin</a>
     <div class="nav-links">
-        <a href="/admin/dashboard">Dashboard</a>
-        <a href="/admin/auctions" class="active">Auctions</a>
+        <a th:href="@{/admin/dashboard(token=${token})}">Dashboard</a>
+        <a th:href="@{/admin/auctions(token=${token})}" class="active">Auctions</a>
     </div>
     <div class="user-info">
         <span th:text="${user.name}">Admin</span>
-        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
 </div>
 
@@ -88,7 +88,7 @@
                     <div class="auc-meta"><span class="pill-live"><i class="bi bi-circle-fill"></i> LIVE</span><span class="bid-count" th:text="${entry.bidCount} + ' bids'">0</span></div>
                     <h5 th:text="${entry.item != null ? entry.item.name : 'Item'}">Item</h5>
                     <div class="price-current">₹<span th:text="${entry.currentHighest != null ? entry.currentHighest : 0}">0</span></div>
-                    <a th:href="@{'/admin/auction/' + ${entry.auction.auctionId}}" class="btn-monitor">Monitor</a>
+                    <a th:href="@{'/admin/auction/' + ${entry.auction.auctionId} + '?token=' + ${token}}" class="btn-monitor">Monitor</a>
                 </div>
             </div>
         </div>
@@ -106,7 +106,7 @@
                     <div class="auc-meta"><span class="pill-pending">PENDING</span></div>
                     <h5 th:text="${entry.item != null ? entry.item.name : 'Item'}">Item</h5>
                     <div style="font-size:13px;color:#64748b">Starts: <span th:text="${#temporals.format(entry.auction.startTime, 'MMM dd, hh:mm a')}">--</span></div>
-                    <a th:href="@{'/admin/auction/' + ${entry.auction.auctionId}}" class="btn-monitor">View</a>
+                    <a th:href="@{'/admin/auction/' + ${entry.auction.auctionId} + '?token=' + ${token}}" class="btn-monitor">View</a>
                 </div>
             </div>
         </div>
@@ -134,7 +134,7 @@
                         </div>
                         <div th:if="${entry.winnerName == null}" style="color:#94a3b8;">No bids placed</div>
                     </div>
-                    <a th:href="@{'/admin/auction/' + ${entry.auction.auctionId}}" class="btn-monitor" style="margin-top:10px;">View Details</a>
+                    <a th:href="@{'/admin/auction/' + ${entry.auction.auctionId} + '?token=' + ${token}}" class="btn-monitor" style="margin-top:10px;">View Details</a>
                 </div>
             </div>
         </div>

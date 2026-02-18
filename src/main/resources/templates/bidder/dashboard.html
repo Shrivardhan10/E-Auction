@@ -146,13 +146,13 @@
 </head>
 <body>
     <header class="top-bar">
-        <a class="brand" href="/bidder/dashboard">
+        <a class="brand" th:href="@{/bidder/dashboard(token=${token})}">
             <i class="bi bi-hammer"></i> E-Auction Bidder
         </a>
         <div class="user-info">
-            <a href="/bidder/auctions" style="color:#2563eb;text-decoration:none;font-weight:600"><i class="bi bi-broadcast"></i> Auctions</a>
+            <a th:href="@{/bidder/auctions(token=${token})}" style="color:#2563eb;text-decoration:none;font-weight:600"><i class="bi bi-broadcast"></i> Auctions</a>
             <span><i class="bi bi-person-circle"></i> <span th:text="${user.name}">Bidder</span></span>
-            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+            <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
         </div>
     </header>
 
@@ -193,7 +193,7 @@
         <h2 class="section-head"><i class="bi bi-trophy"></i> Auctions Won</h2>
 
         <div class="auction-grid" th:if="${wonAuctionsList != null and !wonAuctionsList.isEmpty()}">
-            <a th:each="entry : ${wonAuctionsList}" th:href="@{'/bidder/auction/' + ${entry.auction.auctionId}}"
+            <a th:each="entry : ${wonAuctionsList}" th:href="@{'/bidder/auction/' + ${entry.auction.auctionId} + '?token=' + ${token}}"
                class="auc-card" style="text-decoration:none;color:inherit;">
                 <img th:if="${entry.item.imageData != null}" th:src="@{'/api/items/' + ${entry.item.itemId} + '/image'}" alt="Item"
                      class="auc-card-img" onerror="this.src='https://via.placeholder.com/320x180?text=No+Image'">
@@ -228,7 +228,7 @@
         <h2 class="section-head" style="margin-top:40px;"><i class="bi bi-hand-index-thumb"></i> Auctions Participated</h2>
 
         <div class="auction-grid" th:if="${participatedList != null and !participatedList.isEmpty()}">
-            <a th:each="entry : ${participatedList}" th:href="@{'/bidder/auction/' + ${entry.auction.auctionId}}"
+            <a th:each="entry : ${participatedList}" th:href="@{'/bidder/auction/' + ${entry.auction.auctionId} + '?token=' + ${token}}"
                class="auc-card" style="text-decoration:none;color:inherit;">
                 <img th:if="${entry.item.imageData != null}" th:src="@{'/api/items/' + ${entry.item.itemId} + '/image'}" alt="Item"
                      class="auc-card-img" onerror="this.src='https://via.placeholder.com/320x180?text=No+Image'">
@@ -254,7 +254,7 @@
             <div class="empty-box" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;">
                 <i class="bi bi-hand-index-thumb"></i>
                 <h5>No auction participation yet</h5>
-                <p><a href="/bidder/auctions" style="color:#2563eb;">Browse live auctions</a> to start bidding.</p>
+                <p><a th:href="@{/bidder/auctions(token=${token})}" style="color:#2563eb;">Browse live auctions</a> to start bidding.</p>
             </div>
         </div>
 

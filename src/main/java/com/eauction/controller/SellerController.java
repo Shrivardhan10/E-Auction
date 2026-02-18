@@ -49,8 +49,9 @@ public class SellerController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(HttpSession session, Model model) {
-        User seller = getLoggedInSeller(session);
+    public String dashboard(@RequestParam(required = false) String token,
+                           HttpSession session, Model model) {
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) return "redirect:/login";
 
         List<Item> allItems = itemService.getItemsBySeller(seller.getUserId());
@@ -64,13 +65,16 @@ public class SellerController {
         model.addAttribute("approvedItems", approvedItems.size());
         model.addAttribute("pendingItems", pendingItems);
         model.addAttribute("rejectedItems", rejectedItems);
+        model.addAttribute("token", token);
         
         return "seller/dashboard";
     }
 
     @GetMapping("/items/upload")
-    public String showUploadForm(HttpSession session) {
-        if (getLoggedInSeller(session) == null) return "redirect:/login";
+    public String showUploadForm(@RequestParam(required = false) String token,
+                                HttpSession session, Model model) {
+        if (getLoggedInSeller(session, token) == null) return "redirect:/login";
+        model.addAttribute("token", token);
         return "seller/upload-item";
     }
 
@@ -79,16 +83,17 @@ public class SellerController {
                              @RequestParam String description,
                              @RequestParam BigDecimal basePrice,
                              @RequestParam MultipartFile image,
+                             @RequestParam(required = false) String token,
                              HttpSession session,
                              RedirectAttributes redirectAttributes) {
 
-        User seller = getLoggedInSeller(session);
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) return "redirect:/login";
 
         try {
             if (image.isEmpty()) {
                 redirectAttributes.addFlashAttribute("error", "Please upload an image");
-                return "redirect:/seller/items/upload";
+                return "redirect:/seller/items/upload?token=" + token;
             }
 
             Item item = itemService.createItem(name, description, basePrice, 
@@ -100,7 +105,7 @@ public class SellerController {
                 // Redirect to item detail so seller sees the live review progress
                 redirectAttributes.addFlashAttribute("success",
                         "Item '" + item.getName() + "' uploaded as PREMIUM — AI Expert Review in progress...");
-                return "redirect:/seller/items/" + item.getItemId();
+                return "redirect:/seller/items/" + item.getItemId() + "?token=" + token;
             }
 
             redirectAttributes.addFlashAttribute("success",
@@ -109,17 +114,19 @@ public class SellerController {
             redirectAttributes.addFlashAttribute("error", "Upload failed: " + e.getMessage());
         }
 
-        return "redirect:/seller/items";
+        return "redirect:/seller/items?token=" + token;
     }
 
     @GetMapping("/items")
-    public String listItems(HttpSession session, Model model) {
-        User seller = getLoggedInSeller(session);
+    public String listItems(@RequestParam(required = false) String token,
+                           HttpSession session, Model model) {
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) return "redirect:/login";
 
         List<Item> items = itemService.getItemsBySeller(seller.getUserId());
         model.addAttribute("items", items);
         model.addAttribute("seller", seller);
+        model.addAttribute("token", token);
 
         // Find sold items (items whose auctions are COMPLETED with a winner)
         List<Map<String, Object>> soldItems = new java.util.ArrayList<>();
@@ -142,17 +149,20 @@ public class SellerController {
     }
 
     @GetMapping("/items/{itemId}")
-    public String viewItem(@PathVariable UUID itemId, HttpSession session, Model model) {
-        User seller = getLoggedInSeller(session);
+    public String viewItem(@PathVariable UUID itemId,
+                          @RequestParam(required = false) String token,
+                          HttpSession session, Model model) {
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) return "redirect:/login";
 
         Item item = itemService.getItemById(itemId);
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
-            return "redirect:/seller/items";
+            return "redirect:/seller/items?token=" + token;
         }
 
         model.addAttribute("item", item);
         model.addAttribute("seller", seller);
+        model.addAttribute("token", token);
 
         // Check if AI review is in progress or failed
         boolean reviewInProgress = expertReviewService.isReviewInProgress(item);
@@ -192,8 +202,10 @@ public class SellerController {
      */
     @GetMapping("/items/{itemId}/review-status")
     @ResponseBody
-    public Map<String, Object> reviewStatus(@PathVariable UUID itemId, HttpSession session) {
-        User seller = getLoggedInSeller(session);
+    public Map<String, Object> reviewStatus(@PathVariable UUID itemId,
+                                           @RequestParam(required = false) String token,
+                                           HttpSession session) {
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) {
             return Map.of("error", "unauthorized", "done", true);
         }
@@ -216,24 +228,26 @@ public class SellerController {
      * Retry AI expert review for a premium item that previously failed.
      */
     @PostMapping("/items/{itemId}/retry-review")
-    public String retryReview(@PathVariable UUID itemId, HttpSession session,
+    public String retryReview(@PathVariable UUID itemId,
+                              @RequestParam(required = false) String token,
+                              HttpSession session,
                               RedirectAttributes redirectAttributes) {
-        User seller = getLoggedInSeller(session);
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) return "redirect:/login";
 
         Item item = itemService.getItemById(itemId);
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
-            return "redirect:/seller/items";
+            return "redirect:/seller/items?token=" + token;
         }
 
         if (!"PREMIUM".equals(item.getItemType())) {
             redirectAttributes.addFlashAttribute("error", "Only PREMIUM items can have AI review.");
-            return "redirect:/seller/items/" + itemId;
+            return "redirect:/seller/items/" + itemId + "?token=" + token;
         }
 
         expertReviewService.retryReview(item);
         redirectAttributes.addFlashAttribute("success", "AI Expert Review restarted...");
-        return "redirect:/seller/items/" + itemId;
+        return "redirect:/seller/items/" + itemId + "?token=" + token;
     }
 
     /**
@@ -272,25 +286,26 @@ public class SellerController {
                                 @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
                                 @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
                                 @RequestParam(required = false, defaultValue = "10.00") BigDecimal minIncrementPercent,
+                                @RequestParam(required = false) String token,
                                 HttpSession session,
                                 RedirectAttributes redirectAttributes) {
-        User seller = getLoggedInSeller(session);
+        User seller = getLoggedInSeller(session, token);
         if (seller == null) return "redirect:/login";
 
         Item item = itemService.getItemById(itemId);
         if (item == null || !item.getSellerId().equals(seller.getUserId())) {
-            return "redirect:/seller/items";
+            return "redirect:/seller/items?token=" + token;
         }
 
         if (!"APPROVED".equals(item.getAdminStatus())) {
             redirectAttributes.addFlashAttribute("error", "Only approved items can be pushed to auction.");
-            return "redirect:/seller/items/" + itemId;
+            return "redirect:/seller/items/" + itemId + "?token=" + token;
         }
 
         // Validate times
         if (endTime.isBefore(startTime) || endTime.equals(startTime)) {
             redirectAttributes.addFlashAttribute("error", "End time must be after start time.");
-            return "redirect:/seller/items/" + itemId;
+            return "redirect:/seller/items/" + itemId + "?token=" + token;
         }
 
         try {
@@ -301,19 +316,19 @@ public class SellerController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
 
-        return "redirect:/seller/items/" + itemId;
+        return "redirect:/seller/items/" + itemId + "?token=" + token;
     }
 
-    private User getLoggedInSeller(HttpSession session) {
-        // Try role-prefixed attribute first (multi-tab support)
-        String userIdStr = (String) session.getAttribute("SELLER_userId");
-        if (userIdStr == null) {
-            // Fallback to generic attrs
-            userIdStr = (String) session.getAttribute("userId");
-            String userRole = (String) session.getAttribute("userRole");
-            if (userIdStr == null || !"SELLER".equals(userRole)) return null;
+    private User getLoggedInSeller(HttpSession session, String token) {
+        if (token == null || token.isEmpty()) {
+            return null;
         }
-        try {
+        String userIdStr = (String) session.getAttribute("user_" + token);
+        String role = (String) session.getAttribute("role_" + token);
+        if (userIdStr == null || !"SELLER".equals(role)) {
+            return null;
+        }
+        try { 
             UUID userId = UUID.fromString(userIdStr);
             return sellerService.findById(userId);
         } catch (IllegalArgumentException e) {

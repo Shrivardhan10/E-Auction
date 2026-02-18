@@ -70,14 +70,14 @@
 <body>
 
 <div class="top-bar">
-    <a href="/bidder/dashboard" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
+    <a th:href="@{/bidder/dashboard(token=${token})}" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
     <div class="nav-links">
-        <a href="/bidder/dashboard">Dashboard</a>
-        <a href="/bidder/auctions" class="active">Auctions</a>
+        <a th:href="@{/bidder/dashboard(token=${token})}">Dashboard</a>
+        <a th:href="@{/bidder/auctions(token=${token})}" class="active">Auctions</a>
     </div>
     <div class="user-info">
         <span th:text="${user.name}">User</span>
-        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
 </div>
 
@@ -92,7 +92,7 @@
             <strong>You won an auction! Payment required.</strong>
             <p>Amount: ₹<span th:text="${payment.amount}">0</span> — Deadline: <span th:text="${#temporals.format(payment.dueBy, 'hh:mm a')}">--</span></p>
         </div>
-        <a th:href="@{'/bidder/payment/' + ${payment.auctionId}}" class="btn-pay">Pay Now</a>
+        <a th:href="@{'/bidder/payment/' + ${payment.auctionId} + '?token=' + ${token}}" class="btn-pay">Pay Now</a>
     </div>
 
     <!-- Filter pills -->
@@ -127,7 +127,7 @@
                     <div class="time-left" th:attr="data-end=${entry.auction.endTime}">
                         Ends: <span th:text="${#temporals.format(entry.auction.endTime, 'MMM dd, hh:mm a')}">--</span>
                     </div>
-                    <a th:href="@{'/bidder/auction/' + ${entry.auction.auctionId}}" class="btn-join">Join Auction</a>
+                    <a th:href="@{'/bidder/auction/' + ${entry.auction.auctionId} + '?token=' + ${token}}" class="btn-join">Join Auction</a>
                 </div>
             </div>
         </div>

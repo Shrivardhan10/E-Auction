@@ -71,19 +71,19 @@
 <body>
 
 <div class="top-bar">
-    <a href="/seller/dashboard" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
+    <a th:href="@{/seller/dashboard(token=${token})}" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
     <div class="nav-links">
-        <a href="/seller/dashboard">Dashboard</a>
-        <a href="/seller/items">My Items</a>
+        <a th:href="@{/seller/dashboard(token=${token})}">Dashboard</a>
+        <a th:href="@{/seller/items(token=${token})}">My Items</a>
     </div>
     <div class="user-info">
         <span th:text="${user.name}">Seller</span>
-        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
 </div>
 
 <div class="page-wrap">
-    <a href="/seller/items" class="back-link"><i class="bi bi-arrow-left"></i> Back to My Items</a>
+    <a th:href="@{/seller/items(token=${token})}" class="back-link"><i class="bi bi-arrow-left"></i> Back to My Items</a>
 
     <div class="status-bar">
         <span th:if="${auction.status == 'LIVE'}" class="status-live"><span class="dot"></span> LIVE</span>

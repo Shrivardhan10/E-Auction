@@ -144,12 +144,12 @@
 
     <!-- Top bar -->
     <div class="top-bar">
-        <a class="brand" href="/seller/dashboard"><i class="bi bi-hammer"></i> E-Auction</a>
+        <a class="brand" th:href="@{/seller/dashboard(token=${token})}"><i class="bi bi-hammer"></i> E-Auction</a>
         <div class="nav-links">
-            <a href="/seller/dashboard"><i class="bi bi-house"></i> Dashboard</a>
-            <a href="/seller/items" class="active"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
-            <a href="/seller/items/upload"><i class="bi bi-plus-circle"></i> Upload</a>
-            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            <a th:href="@{/seller/dashboard(token=${token})}"><i class="bi bi-house"></i> Dashboard</a>
+            <a th:href="@{/seller/items(token=${token})}" class="active"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
+            <a th:href="@{/seller/items/upload(token=${token})}"><i class="bi bi-plus-circle"></i> Upload</a>
+            <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
         </div>
     </div>
 
@@ -173,7 +173,7 @@
                 <h1>My Items</h1>
                 <span class="count" th:text="'(' + ${items.size()} + ')'"></span>
             </div>
-            <a href="/seller/items/upload" class="btn-upload"><i class="bi bi-plus-lg"></i> Upload Item</a>
+            <a th:href="@{/seller/items/upload(token=${token})}" class="btn-upload"><i class="bi bi-plus-lg"></i> Upload Item</a>
         </div>
 
         <!-- Filter pills (client-side) -->
@@ -208,7 +208,7 @@
                     <h3 th:text="${item.name}">Item Name</h3>
                     <div class="item-price" th:text="'₹' + ${#numbers.formatInteger(item.basePrice, 1, 'DEFAULT')}">₹0</div>
                     <div class="item-date" th:text="${item.createdAt != null ? #temporals.format(item.createdAt, 'dd MMM yyyy, hh:mm a') : '—'}">—</div>
-                    <a th:href="@{'/seller/items/' + ${item.itemId}}" class="btn-view">
+                    <a th:href="@{'/seller/items/' + ${item.itemId} + '?token=' + ${token}}" class="btn-view">
                         <i class="bi bi-eye"></i> View Details
                     </a>
                 </div>
@@ -219,7 +219,7 @@
                 <i class="bi bi-inbox"></i>
                 <h3>No items yet</h3>
                 <p>Upload your first item to start selling.</p>
-                <a href="/seller/items/upload" class="btn-upload" style="margin-top:16px;"><i class="bi bi-plus-lg"></i> Upload Item</a>
+                <a th:href="@{/seller/items/upload(token=${token})}" class="btn-upload" style="margin-top:16px;"><i class="bi bi-plus-lg"></i> Upload Item</a>
             </div>
         </div>
 
@@ -246,7 +246,7 @@
                             <i class="bi bi-person-fill" style="color:#64748b;"></i>
                             Buyer: <strong th:text="${entry.buyerName}">—</strong>
                         </div>
-                        <a th:href="@{'/seller/items/' + ${entry.item.itemId}}" class="btn-view" style="border-color:#bbf7d0;color:#16a34a;">
+                        <a th:href="@{'/seller/items/' + ${entry.item.itemId} + '?token=' + ${token}}" class="btn-view" style="border-color:#bbf7d0;color:#16a34a;">
                             <i class="bi bi-eye"></i> View Details
                         </a>
                     </div>

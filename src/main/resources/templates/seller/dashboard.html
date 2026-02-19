@@ -99,12 +99,12 @@
 </head>
 <body>
     <header class="top-bar">
-        <a class="brand" href="/seller/dashboard">
+        <a class="brand" th:href="@{/seller/dashboard(token=${token})}">
             <i class="bi bi-shop-window"></i> E-Auction Seller
         </a>
         <div class="user-info">
             <span><i class="bi bi-person-circle"></i> <span th:text="${seller.name}">Seller</span></span>
-            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+            <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
         </div>
     </header>
 
@@ -140,12 +140,12 @@
         <div class="quick-actions">
             <h2><i class="bi bi-lightning-charge"></i> Quick Actions</h2>
             <div class="action-row">
-                <a href="/seller/items/upload" class="action-card">
+                <a th:href="@{/seller/items/upload(token=${token})}" class="action-card">
                     <div class="act-icon"><i class="bi bi-cloud-arrow-up"></i></div>
                     <h3>Upload New Item</h3>
                     <p>List a new collectible for auction</p>
                 </a>
-                <a href="/seller/items" class="action-card">
+                <a th:href="@{/seller/items(token=${token})}" class="action-card">
                     <div class="act-icon"><i class="bi bi-list-ul"></i></div>
                     <h3>View My Items</h3>
                     <p>Check status of all your listings</p>

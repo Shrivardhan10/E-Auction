@@ -217,12 +217,12 @@
 
     <!-- Top bar -->
     <div class="top-bar">
-        <a class="brand" href="/seller/dashboard"><i class="bi bi-hammer"></i> E-Auction</a>
+        <a class="brand" th:href="@{/seller/dashboard(token=${token})}"><i class="bi bi-hammer"></i> E-Auction</a>
         <div class="nav-links">
-            <a href="/seller/dashboard"><i class="bi bi-house"></i> Dashboard</a>
-            <a href="/seller/items"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
-            <a href="/seller/items/upload"><i class="bi bi-plus-circle"></i> Upload</a>
-            <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            <a th:href="@{/seller/dashboard(token=${token})}"><i class="bi bi-house"></i> Dashboard</a>
+            <a th:href="@{/seller/items(token=${token})}"><i class="bi bi-grid-3x3-gap"></i> My Items</a>
+            <a th:href="@{/seller/items/upload(token=${token})}"><i class="bi bi-plus-circle"></i> Upload</a>
+            <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
         </div>
     </div>
 
@@ -240,7 +240,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
-        <a href="/seller/items" class="back-link"><i class="bi bi-arrow-left"></i> Back to My Items</a>
+        <a th:href="@{/seller/items(token=${token})}" class="back-link"><i class="bi bi-arrow-left"></i> Back to My Items</a>
 
         <!-- ─── Item Detail Card ─── -->
         <div class="detail-card">
@@ -337,7 +337,7 @@
             <i class="bi bi-exclamation-triangle" style="font-size:44px;color:#dc2626;"></i>
             <h3 style="margin-top:14px;font-weight:600;color:#991b1b;">Expert Review Failed</h3>
             <p style="color:#94a3b8;font-size:14px;max-width:440px;margin:8px auto 20px;">The review could not be completed. Please try again.</p>
-            <form th:action="@{'/seller/items/' + ${item.itemId} + '/retry-review'}" method="post" style="display:inline;">
+            <form th:action="@{'/seller/items/' + ${item.itemId} + '/retry-review?token=' + ${token}}" method="post" style="display:inline;">
                 <button type="submit" class="btn-primary-custom">
                     <i class="bi bi-arrow-clockwise"></i> Retry Review
                 </button>
@@ -367,7 +367,7 @@
                 </div>
             </div>
 
-            <form th:action="@{'/seller/items/' + ${item.itemId} + '/push-to-auction'}" method="post">
+            <form th:action="@{'/seller/items/' + ${item.itemId} + '/push-to-auction?token=' + ${token}}" method="post">
                 <div class="form-row">
                     <div>
                         <label><i class="bi bi-calendar-event"></i> Start Time</label>
@@ -424,7 +424,7 @@
                 </div>
             </div>
             <div style="text-align:center;margin-top:16px;" th:if="${auction.status == 'LIVE'}">
-                <a th:href="@{'/seller/auction/' + ${auction.auctionId}}" style="display:inline-flex;align-items:center;gap:6px;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-weight:600;font-size:14px;text-decoration:none;transition:background .2s;">
+                <a th:href="@{'/seller/auction/' + ${auction.auctionId} + '?token=' + ${token}}" style="display:inline-flex;align-items:center;gap:6px;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-weight:600;font-size:14px;text-decoration:none;transition:background .2s;">
                     <i class="bi bi-broadcast"></i> Monitor Auction
                 </a>
             </div>
@@ -446,7 +446,7 @@
         </div>
 
         <div class="center-block">
-            <a href="/seller/items" class="btn-outline"><i class="bi bi-arrow-left"></i> Back to My Items</a>
+            <a th:href="@{/seller/items(token=${token})}" class="btn-outline"><i class="bi bi-arrow-left"></i> Back to My Items</a>
         </div>
     </div>
 

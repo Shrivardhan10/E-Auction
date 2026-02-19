@@ -13,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.*;
 
@@ -36,8 +37,9 @@ public class BidderController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(HttpSession session, Model model) {
-        User bidder = getLoggedInBidder(session);
+    public String dashboard(@RequestParam(required = false) String token,
+                           HttpSession session, Model model) {
+        User bidder = getLoggedInBidder(session, token);
         if (bidder == null) return "redirect:/login";
 
         // Stats
@@ -49,6 +51,7 @@ public class BidderController {
         model.addAttribute("liveAuctions", liveAuctions);
         model.addAttribute("totalBids", totalBids);
         model.addAttribute("auctionsWon", auctionsWon);
+        model.addAttribute("token", token);
 
         // Auctions Won — with item details, sale price
         List<Auction> wonAuctions = auctionRepository.findByWinnerId(bidder.getUserId());
@@ -98,14 +101,14 @@ public class BidderController {
         return "bidder/dashboard";
     }
 
-    private User getLoggedInBidder(HttpSession session) {
-        // Try role-prefixed attribute first (multi-tab support)
-        String userIdStr = (String) session.getAttribute("BIDDER_userId");
-        if (userIdStr == null) {
-            // Fallback to generic attrs
-            userIdStr = (String) session.getAttribute("userId");
-            String userRole = (String) session.getAttribute("userRole");
-            if (userIdStr == null || !"BIDDER".equals(userRole)) return null;
+    private User getLoggedInBidder(HttpSession session, String token) {
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+        String userIdStr = (String) session.getAttribute("user_" + token);
+        String role = (String) session.getAttribute("role_" + token);
+        if (userIdStr == null || !"BIDDER".equals(role)) {
+            return null;
         }
         try {
             UUID userId = UUID.fromString(userIdStr);

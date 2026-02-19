@@ -82,13 +82,13 @@
             <button class="btn-pay" id="payBtn" onclick="pay()">
                 <i class="bi bi-credit-card"></i> Pay ₹<span th:text="${payment.amount}">0</span>
             </button>
-            <a href="/bidder/auctions" class="btn-back">Back to Auctions</a>
+            <a th:href="@{/bidder/auctions(token=${token})}" class="btn-back">Back to Auctions</a>
         </div>
         <div class="success-msg" id="successMsg">
             <i class="bi bi-check-circle-fill"></i>
             <h3>Payment Successful!</h3>
             <p>Your guarantee deposit has been received.</p>
-            <a href="/bidder/auctions" class="btn-back" style="margin-top:16px">Back to Auctions</a>
+            <a th:href="@{/bidder/auctions(token=${token})}" class="btn-back" style="margin-top:16px">Back to Auctions</a>
         </div>
     </div>
 </div>
@@ -96,6 +96,7 @@
 <script th:inline="javascript">
     const auctionId = /*[[${auction.auctionId}]]*/ '';
     const dueBy = /*[[${payment.dueBy.toString()}]]*/ '';
+    const token = /*[[${token}]]*/ '';
 
     function updateTimer() {
         const deadline = new Date(dueBy);
@@ -123,7 +124,8 @@
 
         fetch('/bidder/payment/' + auctionId + '/pay', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
         })
         .then(r => r.json())
         .then(data => {

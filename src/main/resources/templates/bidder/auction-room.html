@@ -101,19 +101,19 @@
 <body>
 
 <div class="top-bar">
-    <a href="/bidder/dashboard" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
+    <a th:href="@{/bidder/dashboard(token=${token})}" class="brand"><i class="bi bi-hammer"></i> E-Auction</a>
     <div class="nav-links">
-        <a href="/bidder/dashboard">Dashboard</a>
-        <a href="/bidder/auctions">Auctions</a>
+        <a th:href="@{/bidder/dashboard(token=${token})}">Dashboard</a>
+        <a th:href="@{/bidder/auctions(token=${token})}">Auctions</a>
     </div>
     <div class="user-info">
         <span th:text="${user.name}">User</span>
-        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
 </div>
 
 <div class="page-wrap">
-    <a href="/bidder/auctions" class="back-link"><i class="bi bi-arrow-left"></i> Back to Auctions</a>
+    <a th:href="@{/bidder/auctions(token=${token})}" class="back-link"><i class="bi bi-arrow-left"></i> Back to Auctions</a>
 
     <div class="status-bar">
         <span th:if="${auction.status == 'LIVE'}" class="status-live"><span class="dot"></span> LIVE</span>
@@ -221,6 +221,7 @@
     const userName = /*[[${user.name}]]*/ '';
     const auctionEnd = /*[[${auction.endTime.toString()}]]*/ '';
     const auctionStatus = /*[[${auction.status}]]*/ '';
+    const token = /*[[${token}]]*/ '';
 
     let stompClient = null;
     let connected = false;
@@ -337,7 +338,7 @@
         fetch('/api/auction/' + auctionId + '/bid', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount })
+            body: JSON.stringify({ amount: amount, token: token })
         })
         .then(r => r.json())
         .then(data => {
@@ -444,7 +445,8 @@
         if (!confirm('Confirm payment?')) return;
         fetch('/bidder/payment/' + auctionId + '/pay', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
         })
         .then(r => r.json())
         .then(data => {

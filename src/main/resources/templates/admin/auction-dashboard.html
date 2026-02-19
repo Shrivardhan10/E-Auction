@@ -69,19 +69,19 @@
 <body>
 
 <div class="top-bar">
-    <a href="/admin/dashboard" class="brand"><i class="bi bi-shield-lock"></i> E-Auction Admin</a>
+    <a th:href="@{/admin/dashboard(token=${token})}" class="brand"><i class="bi bi-shield-lock"></i> E-Auction Admin</a>
     <div class="nav-links">
-        <a href="/admin/dashboard">Dashboard</a>
-        <a href="/admin/auctions">Auctions</a>
+        <a th:href="@{/admin/dashboard(token=${token})}">Dashboard</a>
+        <a th:href="@{/admin/auctions(token=${token})}">Auctions</a>
     </div>
     <div class="user-info">
         <span th:text="${user.name}">Admin</span>
-        <a href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a th:href="@{/logout(token=${token})}"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
 </div>
 
 <div class="page-wrap">
-    <a href="/admin/auctions" class="back-link"><i class="bi bi-arrow-left"></i> Back to Auctions</a>
+    <a th:href="@{/admin/auctions(token=${token})}" class="back-link"><i class="bi bi-arrow-left"></i> Back to Auctions</a>
 
     <div class="status-bar">
         <span th:if="${auction.status == 'LIVE'}" class="status-live"><span class="dot"></span> LIVE</span>

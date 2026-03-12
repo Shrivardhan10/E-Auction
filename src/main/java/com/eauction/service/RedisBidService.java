@@ -343,20 +343,16 @@ BigDecimal basePrice = item.getBasePrice();
 
     // Only reach here if result == "1" (bid accepted by Redis)
 
-    // -----------------------------
-    // 5. Persist to PostgreSQL
-    // -----------------------------
+    // ✅ DO NOT persist to PostgreSQL during bidding phase
+    // Bids stay ONLY in Redis until auction completes
+    // Only the winning bid will be saved to PostgreSQL after auction ends
 
-    Bid newBid = new Bid(auctionId, bidderId, amount);
-    Bid savedBid = bidRepository.save(newBid);
-
-    auction.setCurrentHighestBid(amount);
-    auctionRepository.save(auction);
-
-    log.info("Bid placed: auction={}, bidder={}, amount={}",
+    log.info("Bid placed in Redis: auction={}, bidder={}, amount={}",
             auctionId, bidderId, amount);
 
-    return savedBid;
+    // Return a temporary bid object for response (not persisted to DB)
+    Bid tempBid = new Bid(auctionId, bidderId, amount);
+    return tempBid;
 }
 
 
@@ -457,5 +453,76 @@ BigDecimal basePrice = item.getBasePrice();
             return BigDecimal.ZERO; // first bid: any positive
         }
         return highest.multiply(new BigDecimal("1.10")).setScale(2, RoundingMode.CEILING);
+    }
+
+    /**
+     * Save the winning bid from Redis to PostgreSQL.
+     * Called when auction completes to persist the final winner's bid.
+     * Also checks if bid already exists in PostgreSQL before saving.
+     */
+    public Bid saveWinningBidToDb(UUID auctionId, UUID bidderId, BigDecimal amount) {
+        // Check if a bid for this auction is already in PostgreSQL
+        // (to avoid duplicates if this method is called multiple times)
+        List<Bid> existingBids = bidRepository.findByAuctionIdOrderByCreatedAtDesc(auctionId);
+        if (!existingBids.isEmpty()) {
+            log.warn("Winning bid for auction {} already exists in PostgreSQL. Skipping save.", auctionId);
+            return existingBids.get(0); // Return existing bid
+        }
+
+        // Save winning bid to PostgreSQL
+        Bid winningBid = new Bid(auctionId, bidderId, amount);
+        Bid savedBid = bidRepository.save(winningBid);
+        log.info("Winning bid saved to PostgreSQL: auction={}, bidder={}, amount={}",
+                auctionId, bidderId, amount);
+        return savedBid;
+    }
+
+    /**
+     * Schedule cleanup of auction bids from Redis after a delay.
+     * Bids are kept in Redis temporarily (default: 24 hours) after auction ends.
+     * This allows for verification that the bid was properly stored in PostgreSQL before deletion.
+     */
+    public void scheduleRedisCleanup(UUID auctionId, long delaySeconds) {
+        String bidsKey = "auction:" + auctionId + ":bids";
+        Long bidCount = redis.opsForZSet().zCard(bidsKey);
+        
+        if (bidCount != null && bidCount > 0) {
+            // Verify winning bid is in PostgreSQL before cleanup
+            List<Bid> bidsInDb = bidRepository.findByAuctionIdOrderByCreatedAtDesc(auctionId);
+            if (bidsInDb.isEmpty()) {
+                log.warn("Scheduled cleanup for auction {}: No winning bid found in PostgreSQL yet.", auctionId);
+            }
+
+            // Set TTL to clean up Redis bids after specified delay
+            redis.expire(bidsKey, Duration.ofSeconds(delaySeconds));
+            redis.expire("auction:" + auctionId + ":state", Duration.ofSeconds(delaySeconds));
+            redis.expire("auction:" + auctionId + ":highest", Duration.ofSeconds(delaySeconds));
+            
+            log.info("Scheduled Redis cleanup for auction {}: {} bids will be cleaned in {} seconds",
+                    auctionId, bidCount, delaySeconds);
+        }
+    }
+
+    /**
+     * Manually clean up all Redis data for a completed auction.
+     * Verifies winning bid exists in PostgreSQL before deleting Redis data.
+     */
+    public void cleanupAuctionBids(UUID auctionId) {
+        // Verify winning bid is in PostgreSQL
+        List<Bid> bidsInDb = bidRepository.findByAuctionIdOrderByCreatedAtDesc(auctionId);
+        if (bidsInDb.isEmpty()) {
+            log.error("Cannot cleanup Redis for auction {}: No winning bid found in PostgreSQL!", auctionId);
+            return;
+        }
+
+        // Safe to delete from Redis
+        String bidsKey = "auction:" + auctionId + ":bids";
+        Long deletedCount = redis.delete(List.of(
+                bidsKey,
+                "auction:" + auctionId + ":state",
+                "auction:" + auctionId + ":highest"
+        ));
+
+        log.info("Cleaned up Redis bids for auction {}: {} keys deleted", auctionId, deletedCount);
     }
 }

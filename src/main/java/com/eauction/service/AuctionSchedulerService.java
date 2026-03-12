@@ -83,7 +83,8 @@ public class AuctionSchedulerService {
 
     /**
      * Transition LIVE → COMPLETED when end time passes.
-     * Creates payment record for the winner with 5-min deadline.
+     * Moves ONLY the winning bid from Redis to PostgreSQL.
+     * Non-winning bids remain in Redis temporarily, then cleanup is scheduled.
      */
     @Transactional
     private void completeLiveAuctions() {
@@ -92,19 +93,24 @@ public class AuctionSchedulerService {
 
         for (Auction auction : live) {
             if (now.isAfter(auction.getEndTime())) {
-                // Get winner from Redis
+                // Get winner info from Redis
                 BigDecimal highestBid = redisBidService.getCurrentHighestBid(auction.getAuctionId());
                 String highestBidder = redisBidService.getHighestBidder(auction.getAuctionId());
 
                 if (highestBid.compareTo(BigDecimal.ZERO) > 0
                         && highestBidder != null && !highestBidder.isEmpty()) {
                     UUID winnerId = UUID.fromString(highestBidder);
+                    
+                    // ✅ Save ONLY the winning bid to PostgreSQL
+                    redisBidService.saveWinningBidToDb(auction.getAuctionId(), winnerId, highestBid);
+
+                    // Update auction with winner info
                     auction.setWinnerId(winnerId);
                     auction.setCurrentHighestBid(highestBid);
                     auction.setStatus("COMPLETED");
                     auctionRepository.save(auction);
 
-                    // Create GUARANTEE payment (50%)
+                    // Create GUARANTEE payment (50% of winning bid)
                     BigDecimal guaranteeAmount = highestBid.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
                     Payment payment = Payment.builder()
                             .paymentId(UUID.randomUUID())
@@ -118,6 +124,11 @@ public class AuctionSchedulerService {
                             .build();
                     paymentRepository.save(payment);
 
+                    // ✅ Schedule cleanup of Redis bids after 24 hours
+                    // This gives time to verify winning bid is in PostgreSQL before deleting from Redis
+                    long cleanupDelaySeconds = 86400; // 24 hours
+                    redisBidService.scheduleRedisCleanup(auction.getAuctionId(), cleanupDelaySeconds);
+
                     // Broadcast auction completion + payment window
                     messagingTemplate.convertAndSend("/topic/auction/" + auction.getAuctionId(),
                             Map.of("type", "AUCTION_ENDED",
@@ -126,9 +137,10 @@ public class AuctionSchedulerService {
                                     "paymentAmount", guaranteeAmount.toPlainString(),
                                     "paymentDeadline", payment.getDueBy().toString()));
 
-                    log.info("Auction {} completed. Winner: {}, Bid: {}", auction.getAuctionId(), winnerId, highestBid);
+                    log.info("Auction {} completed. Winner: {}, Winning Bid: {} (now in PostgreSQL, other bids in Redis)",
+                            auction.getAuctionId(), winnerId, highestBid);
                 } else {
-                    // No bids — just complete
+                    // No bids — just complete auction
                     auction.setStatus("COMPLETED");
                     auctionRepository.save(auction);
                     redisBidService.deactivateAuction(auction.getAuctionId());

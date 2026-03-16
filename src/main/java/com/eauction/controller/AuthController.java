@@ -70,10 +70,7 @@ public class AuthController {
             case "SELLER" -> "redirect:/seller/dashboard?token=" + loginToken;
             case "ADMIN" -> "redirect:/admin/dashboard?token=" + loginToken;
             case "BIDDER" -> "redirect:/bidder/dashboard?token=" + loginToken;
-            case "DELIVERY" -> {
-                model.addAttribute("info", "Delivery dashboard is coming soon!");
-                yield "login";
-            }
+            case "DELIVERY" -> "redirect:/delivery/dashboard?token=" + loginToken;
             default -> {
                 model.addAttribute("error", "Unknown user role");
                 yield "login";

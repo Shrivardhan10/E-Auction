@@ -445,6 +445,74 @@
             </div>
         </div>
 
+        <!-- ─── Delivery Tracking (for sold items) ─── -->
+        <div th:if="${deliveryStatus != null}" class="section-card">
+            <div class="section-header">
+                <div th:class="'icon-box ' + (${deliveryStatus.status == 'DELIVERED'} ? 'icon-green' : (${deliveryStatus.status == 'REJECTED'} ? 'icon-red' : 'icon-blue'))">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <div>
+                    <h2>Delivery Status</h2>
+                    <p th:text="'Current: ' + ${deliveryStatus.status}">—</p>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="lbl">Status</div>
+                    <div class="val" th:classappend="${deliveryStatus.status == 'DELIVERED' ? 'val-green' : (deliveryStatus.status == 'REJECTED' ? 'val-red' : 'val-amber')}"
+                         th:text="${deliveryStatus.status}">—</div>
+                </div>
+                <div class="stat-box" th:if="${deliveryAgentName != null}">
+                    <div class="lbl">Delivery Agent</div>
+                    <div class="val val-slate" style="font-size:15px;" th:text="${deliveryAgentName}">—</div>
+                </div>
+                <div class="stat-box" th:if="${deliveryStatus.similarityScore != null}">
+                    <div class="lbl">Image Similarity</div>
+                    <div class="val" th:classappend="${deliveryStatus.similarityScore.doubleValue() >= 60 ? 'val-green' : 'val-red'}"
+                         th:text="${deliveryStatus.similarityScore + '%'}">—</div>
+                </div>
+                <div class="stat-box" th:if="${deliveryStatus.pickedUpAt != null}">
+                    <div class="lbl">Picked Up</div>
+                    <div class="val val-slate" style="font-size:13px;"
+                         th:text="${#temporals.format(deliveryStatus.pickedUpAt, 'dd MMM yyyy, hh:mm a')}">—</div>
+                </div>
+                <div class="stat-box" th:if="${deliveryStatus.deliveredAt != null}">
+                    <div class="lbl">Delivered</div>
+                    <div class="val val-green" style="font-size:13px;"
+                         th:text="${#temporals.format(deliveryStatus.deliveredAt, 'dd MMM yyyy, hh:mm a')}">—</div>
+                </div>
+            </div>
+
+            <div th:if="${deliveryStatus.status == 'DELIVERED'}" style="margin-top:16px;padding:16px;background:#dcfce7;border-radius:10px;text-align:center;">
+                <i class="bi bi-check-circle-fill" style="font-size:20px;color:#16a34a;"></i>
+                <strong style="color:#166534;"> Item delivered successfully to the buyer!</strong>
+            </div>
+            <div th:if="${deliveryStatus.status == 'VERIFIED'}" style="margin-top:16px;padding:16px;background:#dbeafe;border-radius:10px;text-align:center;">
+                <i class="bi bi-patch-check-fill" style="font-size:20px;color:#2563eb;"></i>
+                <strong style="color:#1e40af;"> Item verified! Delivery agent is delivering to the buyer.</strong>
+            </div>
+            <div th:if="${deliveryStatus.status == 'REJECTED'}" style="margin-top:16px;padding:16px;background:#fee2e2;border-radius:10px;text-align:center;">
+                <i class="bi bi-x-circle-fill" style="font-size:20px;color:#dc2626;"></i>
+                <strong style="color:#991b1b;"> Item rejected — image verification failed. Auction cancelled.</strong>
+            </div>
+            <div th:if="${deliveryStatus.status == 'PICKED_UP'}" style="margin-top:16px;padding:16px;background:#e0f2fe;border-radius:10px;text-align:center;">
+                <i class="bi bi-shield-check" style="font-size:20px;color:#0369a1;"></i>
+                <strong style="color:#0369a1;"> Agent is picking up and verifying the item.</strong>
+            </div>
+            <div th:if="${deliveryStatus.status == 'PENDING_PICKUP'}" style="margin-top:16px;padding:16px;background:#fef9c3;border-radius:10px;text-align:center;">
+                <i class="bi bi-hourglass-split" style="font-size:20px;color:#d97706;"></i>
+                <strong style="color:#92400e;"> Delivery agent is on the way to pick up your item.</strong>
+            </div>
+        </div>
+
+        <!-- Awaiting delivery assignment (completed auction with buyer but no delivery yet) -->
+        <div th:if="${deliveryStatus == null && auction != null && auction.status == 'COMPLETED' && buyerName != null && guaranteePaid}" class="section-card" style="text-align:center;padding:40px;">
+            <i class="bi bi-truck" style="font-size:44px;color:#d97706;"></i>
+            <h3 style="margin-top:14px;font-weight:600;">Awaiting Delivery Assignment</h3>
+            <p style="color:#94a3b8;font-size:14px;">The buyer has completed the guarantee payment. A delivery agent will be assigned shortly.</p>
+        </div>
+
         <div class="center-block">
             <a th:href="@{/seller/items(token=${token})}" class="btn-outline"><i class="bi bi-arrow-left"></i> Back to My Items</a>
         </div>

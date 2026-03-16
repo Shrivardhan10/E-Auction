@@ -53,7 +53,8 @@
         <div class="pay-header">
             <span class="trophy"><i class="bi bi-trophy-fill"></i></span>
             <h2>Congratulations!</h2>
-            <p>You won the auction. Complete your guarantee payment.</p>
+            <p th:if="${payment.paymentType == 'GUARANTEE'}">You won the auction. Complete your guarantee payment.</p>
+            <p th:if="${payment.paymentType == 'FINAL'}">Item verified &amp; delivered! Complete your final payment.</p>
         </div>
         <div class="pay-body" id="payForm">
             <div class="pay-detail">
@@ -66,7 +67,8 @@
             </div>
             <div class="pay-detail">
                 <span class="label">Payment Type</span>
-                <span class="value">50% Guarantee Deposit</span>
+                <span class="value" th:if="${payment.paymentType == 'GUARANTEE'}">50% Guarantee Deposit</span>
+                <span class="value" th:if="${payment.paymentType == 'FINAL'}">50% Final Payment (Post Delivery)</span>
             </div>
 
             <div class="pay-total">
@@ -87,7 +89,8 @@
         <div class="success-msg" id="successMsg">
             <i class="bi bi-check-circle-fill"></i>
             <h3>Payment Successful!</h3>
-            <p>Your guarantee deposit has been received.</p>
+            <p th:if="${payment.paymentType == 'GUARANTEE'}">Your guarantee deposit has been received.</p>
+            <p th:if="${payment.paymentType == 'FINAL'}">Your final payment has been received. Thank you!</p>
             <a th:href="@{/bidder/auctions(token=${token})}" class="btn-back" style="margin-top:16px">Back to Auctions</a>
         </div>
     </div>
@@ -95,14 +98,18 @@
 
 <script th:inline="javascript">
     const auctionId = /*[[${auction.auctionId}]]*/ '';
-    const dueBy = /*[[${payment.dueBy.toString()}]]*/ '';
+    const dueBy = /*[[${payment.dueBy != null ? payment.dueBy.toString() : ''}]]*/ '';
     const token = /*[[${token}]]*/ '';
 
     function updateTimer() {
+        const el = document.getElementById('payTimer');
+        if (!dueBy || dueBy === '') {
+            el.textContent = 'No Deadline';
+            return;
+        }
         const deadline = new Date(dueBy);
         const now = new Date();
         const diff = deadline - now;
-        const el = document.getElementById('payTimer');
 
         if (diff <= 0) {
             el.textContent = 'EXPIRED';

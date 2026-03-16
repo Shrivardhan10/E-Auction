@@ -32,13 +32,13 @@ public class Item {
     @Column(name = "image_content_type", length = 100)
     private String imageContentType;
 
-    @Column(name = "item_type", nullable = false)
+    @Column(name = "item_type", nullable = false, columnDefinition = "item_type")
     private String itemType;
 
     @Column(name = "base_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal basePrice;
 
-    @Column(name = "admin_status")
+    @Column(name = "admin_status", columnDefinition = "approval_status")
     private String adminStatus;
 
     @Column(name = "admin_remarks", columnDefinition = "TEXT")

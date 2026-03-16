@@ -89,8 +89,11 @@
     <div th:each="payment : ${pendingPayments}" class="payment-alert">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div class="pa-text">
-            <strong>You won an auction! Payment required.</strong>
-            <p>Amount: ₹<span th:text="${payment.amount}">0</span> — Deadline: <span th:text="${#temporals.format(payment.dueBy, 'hh:mm a')}">--</span></p>
+            <strong th:if="${payment.paymentType == 'GUARANTEE'}">You won an auction! Guarantee payment required.</strong>
+            <strong th:if="${payment.paymentType == 'FINAL'}">Item delivered! Final payment required.</strong>
+            <p>Amount: ₹<span th:text="${payment.amount}">0</span>
+                <span th:if="${payment.dueBy != null}"> — Deadline: <span th:text="${#temporals.format(payment.dueBy, 'hh:mm a')}">--</span></span>
+            </p>
         </div>
         <a th:href="@{'/bidder/payment/' + ${payment.auctionId} + '?token=' + ${token}}" class="btn-pay">Pay Now</a>
     </div>

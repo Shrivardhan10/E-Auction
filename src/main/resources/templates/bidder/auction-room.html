@@ -96,6 +96,25 @@
         .payment-card .btn-pay{background:#fff;color:#d97706;border:none;border-radius:8px;padding:12px 32px;font-weight:700;font-size:15px;cursor:pointer;transition:transform .2s}
         .payment-card .btn-pay:hover{transform:scale(1.03)}
         .payment-card .deadline{font-size:12px;margin-top:10px;opacity:.8}
+
+        /* Delivery tracking */
+        .delivery-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px}
+        .delivery-card h4{font-size:15px;font-weight:700;margin:0 0 14px;color:#0f172a;display:flex;align-items:center;gap:8px}
+        .delivery-steps{position:relative;padding-left:28px}
+        .delivery-steps::before{content:'';position:absolute;left:10px;top:8px;bottom:8px;width:2px;background:#e2e8f0}
+        .delivery-step{position:relative;margin-bottom:18px}
+        .delivery-step:last-child{margin-bottom:0}
+        .delivery-step .step-dot{position:absolute;left:-22px;top:2px;width:14px;height:14px;border-radius:50%;border:2px solid #e2e8f0;background:#fff;z-index:1}
+        .delivery-step.active .step-dot{border-color:#2563eb;background:#2563eb}
+        .delivery-step.done .step-dot{border-color:#16a34a;background:#16a34a}
+        .delivery-step.failed .step-dot{border-color:#dc2626;background:#dc2626}
+        .delivery-step .step-title{font-size:13px;font-weight:600;color:#64748b}
+        .delivery-step.active .step-title{color:#2563eb}
+        .delivery-step.done .step-title{color:#16a34a}
+        .delivery-step.failed .step-title{color:#dc2626}
+        .delivery-step .step-detail{font-size:11px;color:#94a3b8;margin-top:2px}
+        .similarity-bar{height:6px;background:#e2e8f0;border-radius:3px;margin-top:8px;overflow:hidden}
+        .similarity-bar .fill{height:100%;border-radius:3px;transition:width .5s}
     </style>
 </head>
 <body>
@@ -143,7 +162,8 @@
                     </div>
                     <div class="detail-item">
                         <div class="label">Auction Ends</div>
-                        <div class="value" th:text="${#temporals.format(auction.endTime, 'MMM dd, hh:mm a')}">--</div>
+                        <div class="value" th:if="${auction.endTime != null}" th:text="${#temporals.format(auction.endTime, 'MMM dd, hh:mm a')}">--</div>
+                        <div class="value" th:if="${auction.endTime == null}">--</div>
                     </div>
                     <div class="detail-item">
                         <div class="label">Total Bids</div>
@@ -188,10 +208,69 @@
             <!-- Payment (shown if user won) -->
             <div th:if="${pendingPayment != null}" class="payment-card" id="paymentCard">
                 <h3><i class="bi bi-trophy-fill"></i> You Won!</h3>
-                <p>Complete your 50% guarantee payment</p>
+                <p th:if="${pendingPayment.paymentType == 'GUARANTEE'}">Complete your 50% guarantee payment</p>
+                <p th:if="${pendingPayment.paymentType == 'FINAL'}">Item verified &amp; delivered! Complete your final payment</p>
                 <div class="pay-amount">₹<span th:text="${pendingPayment.amount}">0</span></div>
-                <button class="btn-pay" onclick="processPayment()">Pay Now</button>
-                <div class="deadline">Due by: <span th:text="${#temporals.format(pendingPayment.dueBy, 'hh:mm:ss a')}">--</span></div>
+                <a th:href="@{'/bidder/payment/' + ${auction.auctionId} + '?token=' + ${token}}" class="btn-pay" style="text-decoration:none;display:inline-block;">Pay Now</a>
+                <div th:if="${pendingPayment.dueBy != null}" class="deadline">Due by: <span th:text="${#temporals.format(pendingPayment.dueBy, 'hh:mm:ss a')}">--</span></div>
+                <div th:if="${pendingPayment.dueBy == null}" class="deadline">No deadline</div>
+            </div>
+
+            <!-- Delivery Status Tracking -->
+            <div th:if="${deliveryStatus != null}" class="delivery-card">
+                <h4><i class="bi bi-truck" style="color:#2563eb"></i> Delivery Tracking</h4>
+                <div class="delivery-steps">
+                    <!-- Step 1: Guarantee Paid -->
+                    <div class="delivery-step done">
+                        <div class="step-dot"></div>
+                        <div class="step-title"><i class="bi bi-check-circle-fill"></i> Guarantee Payment Completed</div>
+                    </div>
+
+                    <!-- Step 2: Agent Assigned -->
+                    <div th:class="'delivery-step ' + (${deliveryStatus.status == 'PENDING_PICKUP' || deliveryStatus.status == 'PICKED_UP' || deliveryStatus.status == 'VERIFIED' || deliveryStatus.status == 'DELIVERED'} ? 'done' : '')">
+                        <div class="step-dot"></div>
+                        <div class="step-title"><i class="bi bi-person-badge"></i> Delivery Agent Assigned</div>
+                        <div th:if="${deliveryAgentName != null}" class="step-detail" th:text="'Agent: ' + ${deliveryAgentName}">Agent name</div>
+                    </div>
+
+                    <!-- Step 3: Pick Up & Verify (combined) -->
+                    <div th:class="'delivery-step ' + (${deliveryStatus.status == 'VERIFIED' || deliveryStatus.status == 'DELIVERED'} ? 'done' : (${deliveryStatus.status == 'REJECTED'} ? 'failed' : (${deliveryStatus.status == 'PENDING_PICKUP' || deliveryStatus.status == 'PICKED_UP'} ? 'active' : '')))">
+                        <div class="step-dot"></div>
+                        <div class="step-title"><i class="bi bi-shield-check"></i> Pick Up &amp; Image Verification</div>
+                        <div th:if="${deliveryStatus.status == 'PENDING_PICKUP'}" class="step-detail">Waiting for agent to pick up and verify the item</div>
+                        <div th:if="${deliveryStatus.pickedUpAt != null}" class="step-detail" th:text="'Picked up at ' + ${#temporals.format(deliveryStatus.pickedUpAt, 'dd MMM, hh:mm a')}"></div>
+                        <div th:if="${deliveryStatus.similarityScore != null}" class="step-detail">
+                            Similarity: <strong th:text="${deliveryStatus.similarityScore + '%'}"></strong>
+                            <div class="similarity-bar" style="width:120px">
+                                <div class="fill"
+                                     th:style="${'width:' + deliveryStatus.similarityScore + '%;background:' + (deliveryStatus.similarityScore.doubleValue() >= 60 ? 'green' : 'red')}"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Delivery -->
+                    <div th:if="${deliveryStatus.status == 'VERIFIED'}" class="delivery-step active">
+                        <div class="step-dot"></div>
+                        <div class="step-title"><i class="bi bi-truck"></i> Item Being Delivered</div>
+                        <div class="step-detail">Item verified! Agent is delivering to you.</div>
+                    </div>
+                    <div th:if="${deliveryStatus.status == 'DELIVERED'}" class="delivery-step done">
+                        <div class="step-dot"></div>
+                        <div class="step-title"><i class="bi bi-check-circle-fill"></i> Delivered Successfully</div>
+                        <div th:if="${deliveryStatus.deliveredAt != null}" class="step-detail" th:text="'Delivered at ' + ${#temporals.format(deliveryStatus.deliveredAt, 'dd MMM, hh:mm a')}"></div>
+                    </div>
+                    <div th:if="${deliveryStatus.status == 'REJECTED'}" class="delivery-step failed">
+                        <div class="step-dot"></div>
+                        <div class="step-title"><i class="bi bi-x-circle-fill"></i> Item Rejected — Verification Failed</div>
+                        <div class="step-detail">The item did not pass image verification. Guarantee will be refunded.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiting for delivery (won + guarantee paid + no delivery assigned yet) -->
+            <div th:if="${deliveryStatus == null && guaranteePaid}" class="delivery-card">
+                <h4><i class="bi bi-truck" style="color:#d97706"></i> Awaiting Delivery</h4>
+                <p style="font-size:13px;color:#64748b;margin:0;">Your guarantee payment is confirmed. A delivery agent will be assigned shortly to pick up and verify your item.</p>
             </div>
 
             <!-- 2nd highest bidder notification (shown via JS) -->
@@ -219,7 +298,7 @@
     const auctionId = /*[[${auction.auctionId}]]*/ '';
     const userId = /*[[${user.userId}]]*/ '';
     const userName = /*[[${user.name}]]*/ '';
-    const auctionEnd = /*[[${auction.endTime.toString()}]]*/ '';
+    const auctionEnd = /*[[${auction.endTime != null ? auction.endTime.toString() : ''}]]*/ '';
     const auctionStatus = /*[[${auction.status}]]*/ '';
     const token = /*[[${token}]]*/ '';
 

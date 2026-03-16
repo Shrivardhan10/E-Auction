@@ -44,7 +44,7 @@ public class Settlement {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "settlement_status")
     private SettlementStatus status = SettlementStatus.PENDING;
 
     private LocalDateTime settledAt;

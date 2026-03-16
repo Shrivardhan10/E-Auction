@@ -29,10 +29,10 @@ public class Payment {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "payment_type", nullable = false)
+    @Column(name = "payment_type", nullable = false, columnDefinition = "payment_type")
     private String paymentType; // GUARANTEE or FINAL
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "payment_status")
     private String status; // PENDING, SUCCESS, FAILED
 
     @Column(name = "due_by")

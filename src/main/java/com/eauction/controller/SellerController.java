@@ -1,9 +1,13 @@
 package com.eauction.controller;
 
 import com.eauction.model.entity.Auction;
+import com.eauction.model.entity.DeliveryVerification;
 import com.eauction.model.entity.ExpertCertification;
 import com.eauction.model.entity.Item;
+import com.eauction.model.entity.Payment;
 import com.eauction.model.entity.User;
+import com.eauction.repository.DeliveryVerificationRepository;
+import com.eauction.repository.PaymentRepository;
 import com.eauction.service.AuctionService;
 import com.eauction.service.ExpertReviewService;
 import com.eauction.service.GeminiAIService;
@@ -37,15 +41,21 @@ public class SellerController {
     private final ExpertReviewService expertReviewService;
     private final GeminiAIService geminiAIService;
     private final AuctionService auctionService;
+    private final DeliveryVerificationRepository deliveryVerificationRepository;
+    private final PaymentRepository paymentRepository;
 
     public SellerController(SellerService sellerService, ItemService itemService,
                             ExpertReviewService expertReviewService, GeminiAIService geminiAIService,
-                            AuctionService auctionService) {
+                            AuctionService auctionService,
+                            DeliveryVerificationRepository deliveryVerificationRepository,
+                            PaymentRepository paymentRepository) {
         this.sellerService = sellerService;
         this.itemService = itemService;
         this.expertReviewService = expertReviewService;
         this.geminiAIService = geminiAIService;
         this.auctionService = auctionService;
+        this.deliveryVerificationRepository = deliveryVerificationRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @GetMapping("/dashboard")
@@ -139,6 +149,10 @@ public class SellerController {
                     User buyer = sellerService.findById(auction.getWinnerId());
                     entry.put("buyerName", buyer != null ? buyer.getName() : "Unknown");
                     entry.put("salePrice", auction.getCurrentHighestBid());
+                    // Add delivery status
+                    DeliveryVerification delivery = deliveryVerificationRepository
+                            .findByAuctionId(auction.getAuctionId()).orElse(null);
+                    entry.put("deliveryStatus", delivery != null ? delivery.getStatus() : null);
                     soldItems.add(entry);
                 }
             });
@@ -190,6 +204,22 @@ public class SellerController {
                     model.addAttribute("buyerEmail", buyer.getEmail());
                 }
                 model.addAttribute("salePrice", auction.getCurrentHighestBid());
+
+                // Delivery tracking
+                DeliveryVerification delivery = deliveryVerificationRepository
+                        .findByAuctionId(auction.getAuctionId()).orElse(null);
+                model.addAttribute("deliveryStatus", delivery);
+                if (delivery != null && delivery.getAgentId() != null) {
+                    User agent = sellerService.findById(delivery.getAgentId());
+                    model.addAttribute("deliveryAgentName", agent != null ? agent.getName() : "Unknown");
+                }
+
+                // Check if guarantee is paid
+                boolean guaranteePaid = paymentRepository.findByAuctionId(auction.getAuctionId()).stream()
+                        .anyMatch(p -> "GUARANTEE".equals(p.getPaymentType())
+                                && auction.getWinnerId().equals(p.getBidderId())
+                                && "SUCCESS".equals(p.getStatus()));
+                model.addAttribute("guaranteePaid", guaranteePaid);
             }
         });
 

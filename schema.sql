@@ -239,17 +239,19 @@ CREATE INDEX idx_payments_status  ON payments(status);
 -- ============================================================
 
 CREATE TABLE delivery_verifications (
-    delivery_id      UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    auction_id       UUID            UNIQUE NOT NULL REFERENCES auctions(auction_id),
-    agent_id         UUID            NOT NULL REFERENCES users(user_id),
-    pickup_image_url TEXT,
-    similarity_score NUMERIC(5, 2)   CHECK (similarity_score BETWEEN 0 AND 100),
-    is_verified      BOOLEAN,
-    status           delivery_status NOT NULL DEFAULT 'PENDING_PICKUP',
-    picked_up_at     TIMESTAMP,
-    delivered_at     TIMESTAMP,
-    created_at       TIMESTAMP       NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMP       NOT NULL DEFAULT NOW()
+    delivery_id              UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    auction_id               UUID            UNIQUE NOT NULL REFERENCES auctions(auction_id),
+    agent_id                 UUID            NOT NULL REFERENCES users(user_id),
+    pickup_image_url         TEXT,
+    pickup_image_data        BYTEA,
+    pickup_image_content_type VARCHAR(100),
+    similarity_score         NUMERIC(5, 2)   CHECK (similarity_score BETWEEN 0 AND 100),
+    is_verified              BOOLEAN,
+    status                   delivery_status NOT NULL DEFAULT 'PENDING_PICKUP',
+    picked_up_at             TIMESTAMP,
+    delivered_at             TIMESTAMP,
+    created_at               TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at               TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_delivery_auction ON delivery_verifications(auction_id);

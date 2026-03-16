@@ -2,10 +2,12 @@ package com.eauction.controller;
 
 import com.eauction.model.entity.Auction;
 import com.eauction.model.entity.Bid;
+import com.eauction.model.entity.DeliveryVerification;
 import com.eauction.model.entity.Item;
 import com.eauction.model.entity.User;
 import com.eauction.repository.AuctionRepository;
 import com.eauction.repository.BidRepository;
+import com.eauction.repository.DeliveryVerificationRepository;
 import com.eauction.service.ItemService;
 import com.eauction.service.SellerService;
 import jakarta.servlet.http.HttpSession;
@@ -25,15 +27,18 @@ public class BidderController {
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
     private final ItemService itemService;
+    private final DeliveryVerificationRepository deliveryVerificationRepository;
 
     public BidderController(SellerService sellerService,
                             AuctionRepository auctionRepository,
                             BidRepository bidRepository,
-                            ItemService itemService) {
+                            ItemService itemService,
+                            DeliveryVerificationRepository deliveryVerificationRepository) {
         this.sellerService = sellerService;
         this.auctionRepository = auctionRepository;
         this.bidRepository = bidRepository;
         this.itemService = itemService;
+        this.deliveryVerificationRepository = deliveryVerificationRepository;
     }
 
     @GetMapping("/dashboard")
@@ -60,6 +65,10 @@ public class BidderController {
             Map<String, Object> m = new HashMap<>();
             m.put("auction", auction);
             m.put("item", item != null ? item : new Item());
+            // Add delivery status
+            DeliveryVerification delivery = deliveryVerificationRepository
+                    .findByAuctionId(auction.getAuctionId()).orElse(null);
+            m.put("deliveryStatus", delivery != null ? delivery.getStatus() : null);
             return m;
         }).toList();
         model.addAttribute("wonAuctionsList", wonList);

@@ -31,7 +31,7 @@ public class User {
     @Column(nullable = false, length = 15)
     private String phone;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "user_role")
     private String role;
 
     @Column(columnDefinition = "TEXT")

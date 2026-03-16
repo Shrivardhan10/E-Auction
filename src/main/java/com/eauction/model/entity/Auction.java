@@ -23,7 +23,7 @@ public class Auction {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "auction_status")
     private String status;
 
     @Column(name = "min_increment_percent", nullable = false)

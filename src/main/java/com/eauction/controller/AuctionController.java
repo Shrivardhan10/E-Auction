@@ -3,12 +3,17 @@ package com.eauction.controller;
 import com.eauction.exception.InvalidBidException;
 import com.eauction.model.entity.Auction;
 import com.eauction.model.entity.Bid;
+import com.eauction.model.entity.DeliveryVerification;
 import com.eauction.model.entity.Item;
 import com.eauction.model.entity.Payment;
+import com.eauction.model.entity.Settlement;
+import com.eauction.model.entity.SettlementStatus;
 import com.eauction.model.entity.User;
 import com.eauction.repository.AuctionRepository;
 import com.eauction.repository.BidRepository;
+import com.eauction.repository.DeliveryVerificationRepository;
 import com.eauction.repository.PaymentRepository;
+import com.eauction.repository.SettlementRepository;
 import com.eauction.service.ItemService;
 import com.eauction.service.RedisBidService;
 import com.eauction.service.SellerService;
@@ -39,6 +44,8 @@ public class AuctionController {
     private final PaymentRepository paymentRepository;
     private final BidRepository bidRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final SettlementRepository settlementRepository;
+    private final DeliveryVerificationRepository deliveryVerificationRepository;
 
     public AuctionController(AuctionRepository auctionRepository,
                              RedisBidService redisBidService,
@@ -46,7 +53,9 @@ public class AuctionController {
                              SellerService sellerService,
                              PaymentRepository paymentRepository,
                              BidRepository bidRepository,
-                             SimpMessagingTemplate messagingTemplate) {
+                             SimpMessagingTemplate messagingTemplate,
+                             SettlementRepository settlementRepository,
+                             DeliveryVerificationRepository deliveryVerificationRepository) {
         this.auctionRepository = auctionRepository;
         this.redisBidService = redisBidService;
         this.itemService = itemService;
@@ -54,6 +63,8 @@ public class AuctionController {
         this.paymentRepository = paymentRepository;
         this.bidRepository = bidRepository;
         this.messagingTemplate = messagingTemplate;
+        this.settlementRepository = settlementRepository;
+        this.deliveryVerificationRepository = deliveryVerificationRepository;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -72,10 +83,10 @@ public class AuctionController {
         List<Map<String, Object>> liveList = enrichAuctions(liveAuctions);
         List<Map<String, Object>> pendingList = enrichAuctions(pendingAuctions);
 
-        // Check for won auctions with pending payment
+        // Check for won auctions with pending payment (GUARANTEE or FINAL)
         List<Payment> myPendingPayments = paymentRepository.findAll().stream()
                 .filter(p -> p.getBidderId().equals(bidder.getUserId())
-                        && "GUARANTEE".equals(p.getPaymentType())
+                        && ("GUARANTEE".equals(p.getPaymentType()) || "FINAL".equals(p.getPaymentType()))
                         && "PENDING".equals(p.getStatus()))
                 .toList();
 
@@ -98,21 +109,31 @@ public class AuctionController {
         if (auction == null) return "redirect:/bidder/auctions?token=" + token;
 
         Item item = itemService.getItemById(auction.getItemId());
+        if (item == null) return "redirect:/bidder/auctions?token=" + token;
 
         // Get data from Redis if activated
         BigDecimal currentHighest = redisBidService.getCurrentHighestBid(auctionId);
         BigDecimal minimumBid = redisBidService.getMinimumBid(auctionId);
         long bidCount = redisBidService.getBidCount(auctionId);
 
-        // Check if this bidder won and has pending payment
+        // Check if this bidder won and has pending payment (GUARANTEE or FINAL)
         Payment pendingPayment = null;
-        if ("COMPLETED".equals(auction.getStatus())
-                && auction.getWinnerId() != null
+        if (auction.getWinnerId() != null
                 && auction.getWinnerId().equals(bidder.getUserId())) {
-            pendingPayment = paymentRepository
-                    .findByAuctionIdAndBidderIdAndPaymentType(auctionId, bidder.getUserId(), "GUARANTEE")
-                    .filter(p -> "PENDING".equals(p.getStatus()))
-                    .orElse(null);
+            // First check FINAL, then GUARANTEE
+            List<Payment> auctionPayments = paymentRepository.findByAuctionId(auctionId);
+            pendingPayment = auctionPayments.stream()
+                    .filter(p -> bidder.getUserId().equals(p.getBidderId())
+                            && "PENDING".equals(p.getStatus())
+                            && "FINAL".equals(p.getPaymentType()))
+                    .findFirst().orElse(null);
+            if (pendingPayment == null) {
+                pendingPayment = auctionPayments.stream()
+                        .filter(p -> bidder.getUserId().equals(p.getBidderId())
+                                && "PENDING".equals(p.getStatus())
+                                && "GUARANTEE".equals(p.getPaymentType()))
+                        .findFirst().orElse(null);
+            }
         }
 
         model.addAttribute("user", bidder);
@@ -122,6 +143,29 @@ public class AuctionController {
         model.addAttribute("minimumBid", minimumBid);
         model.addAttribute("bidCount", bidCount);
         model.addAttribute("pendingPayment", pendingPayment);
+
+        // Delivery status for won auctions
+        DeliveryVerification deliveryStatus = deliveryVerificationRepository
+                .findByAuctionId(auctionId).orElse(null);
+        model.addAttribute("deliveryStatus", deliveryStatus);
+
+        // Delivery agent name
+        if (deliveryStatus != null && deliveryStatus.getAgentId() != null) {
+            User agent = sellerService.findById(deliveryStatus.getAgentId());
+            model.addAttribute("deliveryAgentName", agent != null ? agent.getName() : "Unknown");
+        }
+
+        // Check if guarantee is paid (for "awaiting delivery" card)
+        boolean guaranteePaid = false;
+        if (auction.getWinnerId() != null && auction.getWinnerId().equals(bidder.getUserId())) {
+            List<Payment> allPayments = paymentRepository.findByAuctionId(auctionId);
+            guaranteePaid = allPayments.stream()
+                    .anyMatch(p -> "GUARANTEE".equals(p.getPaymentType())
+                            && bidder.getUserId().equals(p.getBidderId())
+                            && "SUCCESS".equals(p.getStatus()));
+        }
+        model.addAttribute("guaranteePaid", guaranteePaid);
+
         model.addAttribute("token", token);
         return "bidder/auction-room";
     }
@@ -299,11 +343,22 @@ public class AuctionController {
         Auction auction = auctionRepository.findById(auctionId).orElse(null);
         if (auction == null) return "redirect:/bidder/auctions?token=" + token;
 
-        Payment payment = paymentRepository
-                .findByAuctionIdAndBidderIdAndPaymentType(auctionId, bidder.getUserId(), "GUARANTEE")
-                .orElse(null);
+        // Find any pending payment (FINAL first, then GUARANTEE)
+        List<Payment> auctionPayments = paymentRepository.findByAuctionId(auctionId);
+        Payment payment = auctionPayments.stream()
+                .filter(p -> bidder.getUserId().equals(p.getBidderId())
+                        && "PENDING".equals(p.getStatus())
+                        && "FINAL".equals(p.getPaymentType()))
+                .findFirst().orElse(null);
+        if (payment == null) {
+            payment = auctionPayments.stream()
+                    .filter(p -> bidder.getUserId().equals(p.getBidderId())
+                            && "PENDING".equals(p.getStatus())
+                            && "GUARANTEE".equals(p.getPaymentType()))
+                    .findFirst().orElse(null);
+        }
 
-        if (payment == null || !"PENDING".equals(payment.getStatus())) {
+        if (payment == null) {
             return "redirect:/bidder/auctions?token=" + token;
         }
 
@@ -326,11 +381,22 @@ public class AuctionController {
         User bidder = getLoggedInUser(session, "BIDDER", token);
         if (bidder == null) return Map.of("error", "Unauthorized");
 
-        Payment payment = paymentRepository
-                .findByAuctionIdAndBidderIdAndPaymentType(auctionId, bidder.getUserId(), "GUARANTEE")
-                .orElse(null);
+        // Find pending payment — FINAL first, then GUARANTEE
+        List<Payment> payList = paymentRepository.findByAuctionId(auctionId);
+        Payment payment = payList.stream()
+                .filter(p -> bidder.getUserId().equals(p.getBidderId())
+                        && "PENDING".equals(p.getStatus())
+                        && "FINAL".equals(p.getPaymentType()))
+                .findFirst().orElse(null);
+        if (payment == null) {
+            payment = payList.stream()
+                    .filter(p -> bidder.getUserId().equals(p.getBidderId())
+                            && "PENDING".equals(p.getStatus())
+                            && "GUARANTEE".equals(p.getPaymentType()))
+                    .findFirst().orElse(null);
+        }
 
-        if (payment == null || !"PENDING".equals(payment.getStatus())) {
+        if (payment == null) {
             return Map.of("error", "No pending payment found");
         }
 
@@ -343,6 +409,36 @@ public class AuctionController {
         payment.setStatus("SUCCESS");
         payment.setPaidAt(LocalDateTime.now());
         paymentRepository.save(payment);
+
+        // If this is a FINAL payment, create a Settlement
+        if ("FINAL".equals(payment.getPaymentType())) {
+            Auction auction = auctionRepository.findById(auctionId).orElse(null);
+            if (auction != null) {
+                Item item = itemService.getItemById(auction.getItemId());
+                BigDecimal totalBid = auction.getCurrentHighestBid();
+                BigDecimal brokeragePercent = BigDecimal.ZERO;
+                if (item != null && "PREMIUM".equalsIgnoreCase(item.getItemType())) {
+                    brokeragePercent = new BigDecimal("5.00");
+                }
+                BigDecimal brokerageAmount = totalBid.multiply(brokeragePercent)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                BigDecimal sellerAmount = totalBid.subtract(brokerageAmount);
+
+                User seller = sellerService.findById(item.getSellerId());
+
+                Settlement settlement = Settlement.builder()
+                        .auction(auction)
+                        .seller(seller)
+                        .saleAmount(totalBid)
+                        .brokeragePercent(brokeragePercent)
+                        .brokerageAmount(brokerageAmount)
+                        .sellerAmount(sellerAmount)
+                        .status(SettlementStatus.PENDING)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                settlementRepository.save(settlement);
+            }
+        }
 
         // Clean up Redis for this auction
         redisBidService.deactivateAuction(auctionId);
@@ -455,11 +551,12 @@ public class AuctionController {
                     map.put("winnerName", winner != null ? winner.getName() : "Unknown");
                 }
                 // Payment status
-                paymentRepository.findByAuctionIdAndBidderIdAndPaymentType(
-                        auction.getAuctionId(),
-                        auction.getWinnerId() != null ? auction.getWinnerId() : UUID.randomUUID(),
-                        "GUARANTEE"
-                ).ifPresent(payment -> map.put("paymentStatus", payment.getStatus()));
+                UUID winnerId = auction.getWinnerId() != null ? auction.getWinnerId() : UUID.randomUUID();
+                paymentRepository.findByAuctionId(auction.getAuctionId()).stream()
+                        .filter(p -> winnerId.equals(p.getBidderId())
+                                && "GUARANTEE".equals(p.getPaymentType()))
+                        .findFirst()
+                        .ifPresent(payment -> map.put("paymentStatus", payment.getStatus()));
                 // Seller info
                 if (item != null && item.getSellerId() != null) {
                     User seller = sellerService.findById(item.getSellerId());
